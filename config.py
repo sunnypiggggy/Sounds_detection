@@ -13,3 +13,6 @@ dev_dir = "DCASE2018-task5-dev"
 evl_dir = None
 fold_meta_dir = "evaluation_setup"
 meta_dir = os.path.join(dev_dir, 'meta.txt')
+
+
+
