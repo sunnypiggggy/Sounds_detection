@@ -8,7 +8,7 @@ import sys
 import pickle
 import soundfile as sf
 import config as cfg
-from librosaSTFT import stft
+
 
 class Audio_perpare():
     def __init__(self):
