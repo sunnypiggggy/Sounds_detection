@@ -8,58 +8,61 @@ import sys
 import pickle
 import soundfile as sf
 import config as cfg
-
+from librosaSTFT import stft
 
 class Audio_perpare():
     def __init__(self):
         pass
 
     def read_wav(self, audio_path):
+        '''
+
+        :param audio_path:
+        :return:
+        audio_data,sampleRate
+        '''
         audio_data, sampleRate = sf.read(audio_path)
         print('audio :{0}'.format(audio_path))
         print('sample rate :{0}'.format(sampleRate))
         print('shape: {0}'.format(audio_data.shape))
         return audio_data, sampleRate
 
-    def _computeComplexMixtureSpectrogram(self, stereoSamples, windowSize, hopSize, windowFunction, fftSize=None):
+
+
+    def _getMaxTDOA(self, microphoneSeparationInMetres):
+        sound_speed = 340.29  # m/s
+        return microphoneSeparationInMetres / sound_speed
+
+    def _getTDOAsINSecond(self, microphoneSeparationInMetres, numTDOAs):
+        max_TDOA = self._getMaxTDOA(microphoneSeparationInMetres)
+        tdoa_In_Seconds = np.linspace(-max_TDOA, max_TDOA, numTDOAs)
+        return tdoa_In_Seconds
+
+    def get_angular_spectrogram(self, stereoSamples, windowSize, hopSize, fftSize=None, SampleRate=16000, num_TDOAs=128,
+                                microphoneSeparationInMetres=0.05):
         if fftSize is None:
             fftSize = windowSize
 
         complexMixtureSpectrograms = []
         for channelIndex in range(2):
             complexMixtureSpectrograms.append(
-                librosa.stft(stereoSamples[i], n_fft=fftSize, hop_length=hopSize, win_length=windowSize, center=False))
-        return np.array(complexMixtureSpectrograms)
+                librosa.stft(np.squeeze(stereoSamples[channelIndex]).copy(), n_fft=fftSize, hop_length=hopSize, win_length=windowSize,center=False))
+                # stft(np.squeeze(stereoSamples[channelIndex]).copy(),n_fft=fftSize,hop_length=hopSize,win_length=windowSize,center=False))
 
-    def _getMaxTDOA(self, microphoneSeparationInMetres):
-        sound_speed = 340.0  # m/s
-        return microphoneSeparationInMetres / sound_speed
+        complexMixtureSpectrograms = np.array(complexMixtureSpectrograms)
 
-    def _getTDOAsINSecond(self, microphoneSeparationInMetres, numTDOAs):
-        max_TDOA=self._getMaxTDOA(microphoneSeparationInMetres)
-        tdoa_In_Seconds=np.linspace(-max_TDOA,max_TDOA,numTDOAs)
-        return tdoa_In_Seconds
-
-
-    def _compulateAngularSpectrogram(self, complexMixtureSpectrograms, SampleRate=16000, num_TDOAs=128,
-                                     microphoneSeparationInMetres=0.05):
         num_channel, num_frequenies, num_time = complexMixtureSpectrograms.shape
         frequenciesInHz = np.linspace(0, SampleRate / 2, num_frequenies)
 
         spectralCoherenceV = complexMixtureSpectrograms[0] * complexMixtureSpectrograms[1].conj() / np.abs(
             complexMixtureSpectrograms[0]) / np.abs(complexMixtureSpectrograms[1])
 
-        tdoasInSeconds=self._getMaxTDOA(microphoneSeparationInMetres,num_TDOAs)
-        expJOmega =np.exp(np.outer(frequenciesInHz,-(2j*np.pi)*tdoasInSeconds))
+        tdoasInSeconds = self._getTDOAsINSecond(microphoneSeparationInMetres, num_TDOAs)
+        expJOmega = np.exp(np.outer(frequenciesInHz, -(2j * np.pi) * tdoasInSeconds))
 
         FREQ, TIME, TDOA = range(3)
-        return np.sum(np.einsum(spectralCoherenceV,[FREQ, TIME],expJOmega,[FREQ, TDOA],[TDOA, FREQ, TIME] ).real,axis=1)
-
-
-
-
-
-
+        return np.sum(np.einsum(spectralCoherenceV, [FREQ, TIME], expJOmega, [FREQ, TDOA], [TDOA, FREQ, TIME]).real,
+                      axis=1), tdoasInSeconds
 
     def gcc_phat(self, sig, refsig, fs=1, max_tau=None, interp=16):
         '''
@@ -90,7 +93,6 @@ class Audio_perpare():
 
         return tau, cc
 
-
     def feature_extract(self, audio_path, mfcc_bands=40, mel_spec_n_fft=640):
         audio_data, sample_rate = self.read_wav(audio_path)
 
@@ -110,7 +112,6 @@ class Audio_perpare():
                                                hop_length=mel_spec_n_fft // 2), ref=np.max))
 
         return (mfccs, mels)
-
 
     def save_feature(self, dataset_dir="DCASE2018-task5-dev", feature_dir_name='features'):
         if not os.path.exists(feature_dir_name):
@@ -151,10 +152,26 @@ if __name__ == "__main__":
     # test_solution.save_feature()
 
     # phat test
-    refsig = np.linspace(1, 10, 10)
+    # refsig = np.linspace(1, 10, 10)
+    #
+    # for i in range(0, 10):
+    #     sig = np.concatenate((np.linspace(0, 0, i), refsig, np.linspace(0, 0, 10 - i)))
+    #     offset, _ = test_solution.gcc_phat(sig, refsig)
+    #     print(offset)
 
-    for i in range(0, 10):
-        sig = np.concatenate((np.linspace(0, 0, i), refsig, np.linspace(0, 0, 10 - i)))
-        offset, _ = test_solution.gcc_phat(sig, refsig)
-        print(offset)
+    # angular spectrum test
+    tdoa_data = "tdoa_test.wav"
+    data, sr = test_solution.read_wav(tdoa_data)
+    # data = data.reshape(2, -1)
+    data=data.T
+    angular_spec, tdoasInSeconds = test_solution.get_angular_spectrogram(data, windowSize=1024, hopSize=128,
+                                                                         fftSize=1024,
+                                                                         microphoneSeparationInMetres=0.086)
+    angular_spec[angular_spec < 0] = 0
+    # plt.imshow(angular_spec,extent=[0,10,-0.002,0.002],cmap=cm.binary)
+    librosa.display.specshow(angular_spec)
+    plt.show()
+    meanAngularSpectrum = np.mean(angular_spec, axis=-1)
+    plt.plot(tdoasInSeconds, meanAngularSpectrum)
+    plt.show()
     pass
