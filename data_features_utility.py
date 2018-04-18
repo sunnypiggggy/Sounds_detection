@@ -40,6 +40,17 @@ class Audio_perpare():
 
     def get_angular_spectrogram(self, stereoSamples, windowSize, hopSize, fftSize=None, SampleRate=16000, num_TDOAs=128,
                                 microphoneSeparationInMetres=0.05):
+        '''
+
+        :param stereoSamples:shape (2,x)
+        :param windowSize:
+        :param hopSize:
+        :param fftSize:
+        :param SampleRate:
+        :param num_TDOAs: resoution
+        :param microphoneSeparationInMetres:
+        :return:
+        '''
         if fftSize is None:
             fftSize = windowSize
 
