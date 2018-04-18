@@ -47,7 +47,7 @@ class Audio_perpare():
         :param hopSize:
         :param fftSize:
         :param SampleRate:
-        :param num_TDOAs: resoution
+        :param num_TDOAs: resolution, nums of data to accmulate
         :param microphoneSeparationInMetres:
         :return:
         '''
@@ -73,7 +73,7 @@ class Audio_perpare():
 
         FREQ, TIME, TDOA = range(3)
         return np.sum(np.einsum(spectralCoherenceV, [FREQ, TIME], expJOmega, [FREQ, TDOA], [TDOA, FREQ, TIME]).real,
-                      axis=1), tdoasInSeconds
+                      axis=1)
 
     def gcc_phat(self, sig, refsig, fs=1, max_tau=None, interp=16):
         '''
@@ -175,7 +175,7 @@ if __name__ == "__main__":
     data, sr = test_solution.read_wav(tdoa_data)
     # data = data.reshape(2, -1)
     data=data.T
-    angular_spec, tdoasInSeconds = test_solution.get_angular_spectrogram(data, windowSize=1024, hopSize=128,
+    angular_spec = test_solution.get_angular_spectrogram(data, windowSize=1024, hopSize=128,
                                                                          fftSize=1024,
                                                                          microphoneSeparationInMetres=0.086)
     angular_spec[angular_spec < 0] = 0
@@ -183,6 +183,6 @@ if __name__ == "__main__":
     librosa.display.specshow(angular_spec)
     plt.show()
     meanAngularSpectrum = np.mean(angular_spec, axis=-1)
-    plt.plot(tdoasInSeconds, meanAngularSpectrum)
+    plt.plot( meanAngularSpectrum)
     plt.show()
     pass
