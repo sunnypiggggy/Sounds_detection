@@ -1,4 +1,5 @@
 import os
+import tensorflow as tf
 
 class_name = ['absence', 'cooking', 'dishwashing', 'eating', 'other', 'social_activity', 'vacuum_cleaner',
               'watching_tv', 'working', ]
@@ -14,5 +15,8 @@ evl_dir = None
 fold_meta_dir = "evaluation_setup"
 meta_dir = os.path.join(dev_dir, 'meta.txt')
 
-
-
+mfcc_bands = 40
+mel_spec_n_fft = 640
+angular_windowsize = 1024
+angular_hop = 1024
+num_TDOA = 80
