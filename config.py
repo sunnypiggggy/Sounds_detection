@@ -1,5 +1,5 @@
 import os
-import tensorflow as tf
+import math
 
 class_name = ['absence', 'cooking', 'dishwashing', 'eating', 'other', 'social_activity', 'vacuum_cleaner',
               'watching_tv', 'working', ]
@@ -16,7 +16,21 @@ fold_meta_dir = "evaluation_setup"
 meta_dir = os.path.join(dev_dir, 'meta.txt')
 
 mfcc_bands = 40
-mel_spec_n_fft = 640
+mfcc_n_fft = 1024
+mfcc_hop_length = 512
+mfcc_shape = (40, math.ceil(10 * 16000 / mfcc_hop_length))
+
+mel_spec_n_fft = 1024
+mel_shape = math.ceil(10 * 16000 / (mel_spec_n_fft // 2))
+
 angular_windowsize = 1024
-angular_hop = 1024
+angular_n_fft = 1024
+anguler_shape=(6,311)
+
 num_TDOA = 80
+
+
+
+pass
+
+
