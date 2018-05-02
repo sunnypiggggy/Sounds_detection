@@ -4,6 +4,7 @@ import math
 class_name = ['absence', 'cooking', 'dishwashing', 'eating', 'other', 'social_activity', 'vacuum_cleaner',
               'watching_tv', 'working', ]
 class_index = [0, 1, 2, 3, 4, 5, 6, 7, 8]
+num_class = 9
 
 # class_name_dict = {'dishwashing': 0, 'social_activity': 1, 'vacuum_cleaner': 2, 'watching_tv': 3, 'other': 4,
 #                    'cooking': 5, 'working': 6, 'absence': 7, 'eating': 8}
@@ -25,12 +26,10 @@ mel_shape = math.ceil(10 * 16000 / (mel_spec_n_fft // 2))
 
 angular_windowsize = 1024
 angular_n_fft = 1024
-anguler_shape=(6,311)
+anguler_shape = (6, 311)
 
 num_TDOA = 80
 
 
 
 pass
-
-

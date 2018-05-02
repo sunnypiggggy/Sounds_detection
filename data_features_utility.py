@@ -184,6 +184,9 @@ class AudioPrepare():
         mfccs = np.asarray(mfccs)
         mels = np.asarray(mels)
         angular = np.asarray(angular)
+
+        paddings=np.zeros([angular.shape[0],angular.shape[1],2])
+        angular=np.concatenate([angular,paddings],2)
         return (mfccs, mels, angular)
 
     def save_feature(self, dataset_dir="DCASE2018-task5-dev", feature_dir_name='features'):
@@ -509,9 +512,9 @@ if __name__ == "__main__":
 
     # test_solution.read_feature_TFrecord_test()
 
-    test_solution.save_feature_TFrecord()
+    # test_solution.save_feature_TFrecord()
 
-    # test_solution.save_feature_TFrecord_mutipross()
+    test_solution.save_feature_TFrecord_mutipross()
 
 
     # dataset = test_solution.tf_input_fn()
