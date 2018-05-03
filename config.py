@@ -19,17 +19,18 @@ meta_dir = os.path.join(dev_dir, 'meta.txt')
 mfcc_bands = 40
 mfcc_n_fft = 1024
 mfcc_hop_length = 512
-mfcc_shape = (40, math.ceil(10 * 16000 / mfcc_hop_length))
+
+# mfcc_shape = (40, math.ceil(10 * 16000 / mfcc_hop_length))
+mfcc_shape = (40, 313)
 
 mel_spec_n_fft = 1024
-mel_shape = math.ceil(10 * 16000 / (mel_spec_n_fft // 2))
+# mel_shape = math.ceil(10 * 16000 / (mel_spec_n_fft // 2))
+mel_shape = (40, 313)
 
 angular_windowsize = 1024
 angular_n_fft = 1024
-anguler_shape = (6, 311)
+anguler_shape = (80, 313)
 
 num_TDOA = 80
-
-
 
 pass

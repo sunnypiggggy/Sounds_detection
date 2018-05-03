@@ -16,7 +16,8 @@ from itertools import combinations
 import tensorflow as tf
 from multiprocessing import Process, Pool
 
-#mfcc.shape (4, 40, 313) mel.shape (4, 128, 313) angular.shape (6, 80, 311)
+
+# mfcc.shape (4, 40, 313) mel.shape (4, 128, 313) angular.shape (6, 80, 311)
 class AudioPrepare():
     def __init__(self):
         pass
@@ -185,8 +186,8 @@ class AudioPrepare():
         mels = np.asarray(mels)
         angular = np.asarray(angular)
 
-        paddings=np.zeros([angular.shape[0],angular.shape[1],2])
-        angular=np.concatenate([angular,paddings],2)
+        paddings = np.zeros([angular.shape[0], angular.shape[1], 2])
+        angular = np.concatenate([angular, paddings], 2)
         return (mfccs, mels, angular)
 
     def save_feature(self, dataset_dir="DCASE2018-task5-dev", feature_dir_name='features'):
@@ -407,101 +408,61 @@ class AudioPrepare():
         parsed_features['angular'] = tf.sparse_tensor_to_dense(parsed_features['angular'])
         parsed_features['angular'] = tf.reshape(parsed_features['angular'], parsed_features['angular_shape'])
         parsed_features['angular'] = tf.transpose(parsed_features['angular'], [1, 2, 0])
-        return parsed_features
-        parsed_features = tf.parse_single_example(
-            example_proto,
-            features=features
-        )
-        parsed_features['mfcc'] = tf.reshape(parsed_features['mfcc'], parsed_features['mfcc_shape'])
-        parsed_features['mel'] = tf.reshape(parsed_features['mel'], parsed_features['mel_shape'])
-        parsed_features['angular'] = tf.reshape(parsed_features['angular'], parsed_features['angular_shape'])
-        return parsed_features
+        return parsed_features, parsed_features['label']
 
     # TODO need to modify recordingly
 
-    def tf_input_fn(self, feature_dir_name='features_tfrecord', is_training=True, n_epoch=1):
+    def tf_get_dataset_test(self,feature_dir_name='features_tfrecord', is_training=True, n_epoch=1):
+        data_dir = os.scandir(feature_dir_name)
+
+        if is_training:
+            data_folders = list(filter(lambda x: x.name.split('_')[1].split('.tfrecord')[0] == 'train', data_dir))
+        else:
+            data_folders = list(filter(lambda x: x.name.split('_')[1].split('.tfrecord')[0] == 'test', data_dir))
+
+        data_path = [x.path for x in data_folders]
+        dataset = tf.data.TFRecordDataset(data_path)
+
+        dataset = dataset.map(self.tf_record_prase_function)
+        dataset = dataset.shuffle(buffer_size=100)
+        dataset = dataset.batch(100)
+        dataset = dataset.repeat(n_epoch)
+
+        return dataset
+
+    def tf_input_fn_maker_test(self,dataset):
+
+
         def input_fn():
-            data_dir = os.scandir(feature_dir_name)
-
-            if is_training:
-                data_folders = list(filter(lambda x: x.name.split('_')[1].split('.tfrecord')[0] == 'train', data_dir))
-            else:
-                data_folders = list(filter(lambda x: x.name.split('_')[1].split('.tfrecord')[0] == 'test', data_dir))
-
-            data_path = [x.path for x in data_folders]
-
-            dataset = tf.data.TFRecordDataset(data_path)
-
-            dataset = dataset.map(self.tf_record_prase_function)
-            dataset = dataset.shuffle(buffer_size=100)
-            dataset = dataset.batch(100)
-            dataset = dataset.repeat(n_epoch)
             iterator = dataset.make_one_shot_iterator()
+            features, label = iterator.get_next()
+            return features, label
 
-            return iterator.get_next()
+        return input_fn
+    def tf_input_fn_maker(self,feature_dir_name='features_tfrecord', is_training=True, n_epoch=1):
+        data_dir = os.scandir(feature_dir_name)
+
+        if is_training:
+            data_folders = list(filter(lambda x: x.name.split('_')[1].split('.tfrecord')[0] == 'train', data_dir))
+        else:
+            data_folders = list(filter(lambda x: x.name.split('_')[1].split('.tfrecord')[0] == 'test', data_dir))
+
+        data_path = [x.path for x in data_folders]
+        dataset = tf.data.TFRecordDataset(data_path)
+
+        dataset = dataset.map(self.tf_record_prase_function)
+        dataset = dataset.shuffle(buffer_size=100)
+        dataset = dataset.batch(100)
+        dataset = dataset.repeat(n_epoch)
+
+        def input_fn():
+            iterator = dataset.make_one_shot_iterator()
+            features, label = iterator.get_next()
+            return features, label
 
         return input_fn
 
-    def read_feature_TFrecord_test(self, feature_dir_name='features_tfrecord'):
-        if not os.path.exists(feature_dir_name):
-            raise Exception('feature_dir_name not exist')
-        TF_Record_file = [dir.path for dir in os.scandir(feature_dir_name)]
 
-        # filename_queue = tf.train.string_input_producer(TF_Record_file, num_epochs=None, shuffle=False)
-        #
-        # reader = tf.TFRecordReader()
-        # _, serialized_example = reader.read(filename_queue)
-        dataset = tf.data.TFRecordDataset(TF_Record_file)
-
-        def _parse_function(example_proto):
-            features = {
-                'label': tf.FixedLenFeature(dtype=tf.int64),
-                'session': tf.FixedLenFeature(dtype=tf.string),
-                'mfcc': tf.FixedLenFeature(dtype=tf.float32),
-                'mfcc_shape': tf.FixedLenFeature(dtype=tf.int64),
-                'mel': tf.FixedLenFeature(dtype=tf.float32),
-                'mel_shape': tf.FixedLenFeature(dtype=tf.int64),
-                'angular': tf.FixedLenFeature(dtype=tf.float32),
-                'angular_shape': tf.FixedLenFeature(dtype=tf.int64)
-            }
-            parsed_features = tf.parse_single_example(
-                example_proto,
-                features=features
-            )
-            parsed_features['mfcc'] = tf.reshape(parsed_features['mfcc'], parsed_features['mfcc_shape'])
-            parsed_features['mel'] = tf.reshape(parsed_features['mel'], parsed_features['mel_shape'])
-            parsed_features['angular'] = tf.reshape(parsed_features['angular'], parsed_features['angular_shape'])
-            return parsed_features
-
-        newdataset = dataset.map(_parse_function)
-        iterator = newdataset.make_one_shot_iterator()
-        next_element = iterator.get_next()
-
-    def tf_feature_dataset(self, dataset_dir='features', is_training=True):
-        data_dir = os.scandir(dataset_dir)
-
-        if is_training:
-            data_folders = list(filter(lambda x: x.name.split('_')[1] == 'train', data_dir))
-        else:
-            data_folders = list(filter(lambda x: x.name.split('_')[1] == 'test', data_dir))
-
-        data_path = reduce(lambda x, y: x + y, [list(os.scandir(x)) for x in data_folders])
-        data_path = [x.path for x in data_path]
-
-        def _parse_functions(file_name):
-            with gzip.open(file_name, 'rb') as f:
-                feature_dict = pickle.load(f)
-                mels = feature_dict['mel']
-                mfccs = feature_dict['mfcc']
-                angular = feature_dict['angular']
-                label = feature_dict['label']
-            return mfccs, mels, angular, label
-
-        tf_dataset = tf.data.Dataset.from_tensor_slices((data_path))
-        tf_dataset = tf_dataset.map(
-            lambda filename: tf.py_func(_parse_functions, [filename], [tf.float32, tf.float32, tf.float32, tf.int32]))
-
-        pass
 
 
 if __name__ == "__main__":
@@ -514,22 +475,26 @@ if __name__ == "__main__":
 
     # test_solution.save_feature_TFrecord()
 
-    test_solution.save_feature_TFrecord_mutipross()
+    # test_solution.save_feature_TFrecord_mutipross()
+    # dataset=test_solution.tf_get_dataset(is_training=False)
 
+    # train_iput_fn = test_solution.tf_input_fn_maker(dataset)
 
-    # dataset = test_solution.tf_input_fn()
-    #
-    # sess = tf.InteractiveSession()
-    # while True:
-    #     try:
-    #         mfcc, label = sess.run([dataset['mfcc'], dataset['label']])
-    #         # label = sess.run(next_element['label'])
-    #         # mfcc= sess.run(next_element['mfcc'])
-    #         # print(mfcc)
-    #         print(label)
-    #     except tf.errors.OutOfRangeError:
-    #         print("End of dataset")
-    #         break
+    sess = tf.InteractiveSession()
+    while True:
+        input_fn=test_solution.tf_input_fn_maker(is_training=False)
+        X,Y=input_fn()
+        try:
+            feature, label = sess.run([X, Y] )
+            rosa_display.specshow(feature['mel'][0,:,:,0])
+            plt.show()
+            # label = sess.run(next_element['label'])
+            # mfcc= sess.run(next_element['mfcc'])
+            # print(mfcc)
+            print(label)
+        except tf.errors.OutOfRangeError:
+            print("End of dataset")
+            break
 
     # feature_dir_name = 'features_tfrecord'
     # if not os.path.exists(feature_dir_name):
