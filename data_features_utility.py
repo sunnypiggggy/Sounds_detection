@@ -381,6 +381,35 @@ class AudioPrepare():
                     serialized = example.SerializeToString()
                     writer.write(serialized)
 
+    # def tf_record_prase_function(self, example_proto):
+    #
+    #     features = {
+    #         'label': tf.FixedLenFeature(shape=(), dtype=tf.int64),
+    #         'session': tf.FixedLenFeature(shape=(), dtype=tf.string),
+    #         'mfcc': tf.VarLenFeature(dtype=tf.float32),
+    #         'mfcc_shape': tf.FixedLenFeature(shape=(3,), dtype=tf.int64),
+    #         'mel': tf.VarLenFeature(dtype=tf.float32),
+    #         'mel_shape': tf.FixedLenFeature(shape=(3,), dtype=tf.int64),
+    #         'angular': tf.VarLenFeature(dtype=tf.float32),
+    #         'angular_shape': tf.FixedLenFeature(shape=(3,), dtype=tf.int64)
+    #     }
+    #     parsed_features = tf.parse_single_example(
+    #         example_proto,
+    #         features=features
+    #     )
+    #     parsed_features['mfcc'] = tf.sparse_tensor_to_dense(parsed_features['mfcc'])
+    #     parsed_features['mfcc'] = tf.reshape(parsed_features['mfcc'], parsed_features['mfcc_shape'])
+    #     parsed_features['mfcc'] = tf.transpose(parsed_features['mfcc'], [1, 2, 0])
+    #
+    #     parsed_features['mel'] = tf.sparse_tensor_to_dense(parsed_features['mel'])
+    #     parsed_features['mel'] = tf.reshape(parsed_features['mel'], parsed_features['mel_shape'])
+    #     parsed_features['mel'] = tf.transpose(parsed_features['mel'], [1, 2, 0])
+    #
+    #     parsed_features['angular'] = tf.sparse_tensor_to_dense(parsed_features['angular'])
+    #     parsed_features['angular'] = tf.reshape(parsed_features['angular'], parsed_features['angular_shape'])
+    #     parsed_features['angular'] = tf.transpose(parsed_features['angular'], [1, 2, 0])
+    #     return parsed_features,parsed_features['label']
+
     def tf_record_prase_function(self, example_proto):
 
         features = {
@@ -397,49 +426,24 @@ class AudioPrepare():
             example_proto,
             features=features
         )
-        parsed_features['mfcc'] = tf.sparse_tensor_to_dense(parsed_features['mfcc'])
-        parsed_features['mfcc'] = tf.reshape(parsed_features['mfcc'], parsed_features['mfcc_shape'])
-        parsed_features['mfcc'] = tf.transpose(parsed_features['mfcc'], [1, 2, 0])
+        mfcc= tf.sparse_tensor_to_dense(parsed_features['mfcc'])
+        mfcc = tf.reshape(mfcc, parsed_features['mfcc_shape'])
+        mfcc = tf.transpose(mfcc, [1, 2, 0])
 
-        parsed_features['mel'] = tf.sparse_tensor_to_dense(parsed_features['mel'])
-        parsed_features['mel'] = tf.reshape(parsed_features['mel'], parsed_features['mel_shape'])
-        parsed_features['mel'] = tf.transpose(parsed_features['mel'], [1, 2, 0])
+        mel = tf.sparse_tensor_to_dense(parsed_features['mel'])
+        mel = tf.reshape(mel, parsed_features['mel_shape'])
+        mel = tf.transpose(mel, [1, 2, 0])
 
-        parsed_features['angular'] = tf.sparse_tensor_to_dense(parsed_features['angular'])
-        parsed_features['angular'] = tf.reshape(parsed_features['angular'], parsed_features['angular_shape'])
-        parsed_features['angular'] = tf.transpose(parsed_features['angular'], [1, 2, 0])
-        return parsed_features, parsed_features['label']
+        angular= tf.sparse_tensor_to_dense(parsed_features['angular'])
+        angular = tf.reshape(angular, parsed_features['angular_shape'])
+        angular = tf.transpose(angular, [1, 2, 0])
 
-    # TODO need to modify recordingly
+        label=tf.cast(parsed_features['label'],tf.int32)
+        # return {'mfcc': mfcc, 'mel': mel, 'angular': angular,'label':label}
 
-    def tf_get_dataset_test(self,feature_dir_name='features_tfrecord', is_training=True, n_epoch=1):
-        data_dir = os.scandir(feature_dir_name)
+        return {'mfcc': mfcc, 'mel': mel, 'angular': angular},label
 
-        if is_training:
-            data_folders = list(filter(lambda x: x.name.split('_')[1].split('.tfrecord')[0] == 'train', data_dir))
-        else:
-            data_folders = list(filter(lambda x: x.name.split('_')[1].split('.tfrecord')[0] == 'test', data_dir))
-
-        data_path = [x.path for x in data_folders]
-        dataset = tf.data.TFRecordDataset(data_path)
-
-        dataset = dataset.map(self.tf_record_prase_function)
-        dataset = dataset.shuffle(buffer_size=100)
-        dataset = dataset.batch(100)
-        dataset = dataset.repeat(n_epoch)
-
-        return dataset
-
-    def tf_input_fn_maker_test(self,dataset):
-
-
-        def input_fn():
-            iterator = dataset.make_one_shot_iterator()
-            features, label = iterator.get_next()
-            return features, label
-
-        return input_fn
-    def tf_input_fn_maker(self,feature_dir_name='features_tfrecord', is_training=True, n_epoch=1):
+    def tf_input_fn_maker(self, feature_dir_name='features_tfrecord', is_training=True, n_epoch=1):
         data_dir = os.scandir(feature_dir_name)
 
         if is_training:
@@ -457,12 +461,31 @@ class AudioPrepare():
 
         def input_fn():
             iterator = dataset.make_one_shot_iterator()
-            features, label = iterator.get_next()
-            return features, label
+            feature,label=iterator.get_next()
+            return feature,label
 
         return input_fn
 
-
+    # def tf_input_fn_maker_test(self, feature_dir_name='features_tfrecord', n_epoch=1):
+    #
+    #     data_path = ['features_tfrecord\\fold1_test.tfrecord', 'features_tfrecord\\fold2_test.tfrecord',
+    #                  'features_tfrecord\\fold3_test.tfrecord']
+    #     dataset = tf.data.TFRecordDataset(data_path)
+    #
+    #     dataset = dataset.map(self.tf_record_prase_function_test)
+    #     dataset = dataset.shuffle(buffer_size=100)
+    #     dataset = dataset.batch(100)
+    #     dataset = dataset.repeat(n_epoch)
+    #
+    #     def input_fn():
+    #
+    #         iterator = dataset.make_one_shot_iterator()
+    #         feature, label = iterator.get_next()
+    #         # return [feature], [label]
+    #         return feature, label
+    #         # return iterator.get_next()
+    #
+    #     return input_fn
 
 
 if __name__ == "__main__":
@@ -482,16 +505,18 @@ if __name__ == "__main__":
 
     sess = tf.InteractiveSession()
     while True:
-        input_fn=test_solution.tf_input_fn_maker(is_training=False)
-        X,Y=input_fn()
+        # input_fn = test_solution.tf_input_fn_maker_test()
+        input_fn,label_fn=test_solution.tf_input_fn_maker()
+        X= input_fn()
+        Y=label_fn()
         try:
-            feature, label = sess.run([X, Y] )
-            rosa_display.specshow(feature['mel'][0,:,:,0])
+            feature ,label= sess.run([input_fn,label_fn])
+            rosa_display.specshow(feature['mel'][0, :, :, 0])
             plt.show()
             # label = sess.run(next_element['label'])
             # mfcc= sess.run(next_element['mfcc'])
             # print(mfcc)
-            print(label)
+            # print(label)
         except tf.errors.OutOfRangeError:
             print("End of dataset")
             break

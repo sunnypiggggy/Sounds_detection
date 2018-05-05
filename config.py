@@ -25,7 +25,7 @@ mfcc_shape = (40, 313)
 
 mel_spec_n_fft = 1024
 # mel_shape = math.ceil(10 * 16000 / (mel_spec_n_fft // 2))
-mel_shape = (40, 313)
+mel_shape = (128, 313)
 
 angular_windowsize = 1024
 angular_n_fft = 1024

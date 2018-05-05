@@ -22,7 +22,7 @@ def conv_layers(input, is_training, pooling_config=None, name=None, use_bn=False
 
         net = tf.layers.conv2d(
             input,
-            filters=128,
+            filters=32,
             kernel_size=5,
             padding='same',
             activation=tf.nn.relu)
@@ -35,7 +35,7 @@ def conv_layers(input, is_training, pooling_config=None, name=None, use_bn=False
     with tf.variable_scope('conv2' + name):
         net = tf.layers.conv2d(
             pool1,
-            filters=128,
+            filters=32,
             kernel_size=5,
             padding='same',
             activation=tf.nn.relu)
@@ -48,7 +48,7 @@ def conv_layers(input, is_training, pooling_config=None, name=None, use_bn=False
     with tf.variable_scope('conv3' + name):
         net = tf.layers.conv2d(
             pool2,
-            filters=128,
+            filters=32,
             kernel_size=5,
             activation=tf.nn.relu)
         if use_bn == True:
@@ -66,12 +66,9 @@ def conv_layers(input, is_training, pooling_config=None, name=None, use_bn=False
 
 
 def model_fn(features, labels, mode):
-    # mels = tf.reshape(features['mel'], shape=[-1, cfg.mel_shape[0], cfg.mel_shape[1], 4])
-    # mfccs = tf.reshape(features['mfcc'], shape=[-1, cfg.mfcc_shape[0], cfg.mfcc_shape[1], 4])
-    # angulars = tf.reshape(features['angular'], shape=[-1, cfg.anguler_shape[0], cfg.anguler_shape[1], 6])
-    mels = features['mel']
-    mfccs = features['mfcc']
-    angulars = features['angular']
+    mels = tf.reshape(features['mel'], shape=[-1, cfg.mel_shape[0], cfg.mel_shape[1], 4])
+    mfccs = tf.reshape(features['mfcc'], shape=[-1, cfg.mfcc_shape[0], cfg.mfcc_shape[1], 4])
+    angulars = tf.reshape(features['angular'], shape=[-1, cfg.anguler_shape[0], cfg.anguler_shape[1], 6])
 
     is_training = (mode == tf.estimator.ModeKeys.TRAIN)
 
@@ -79,34 +76,40 @@ def model_fn(features, labels, mode):
     mel_net = conv_layers(mels, is_training, pooling_config=[4, 2, 2], name='mel')
     angular_net = conv_layers(angulars, is_training, pooling_config=[4, 2, 2], name='angular')
 
-    gru_in = tf.concat([mfcc_net, mel_net, angular_net], axis=2)
+    with tf.variable_scope('BiGRU'):
+        gru_in = tf.concat([mfcc_net, mel_net, angular_net], axis=2)
 
-    fw_cell_list = [tf.nn.rnn_cell.GRUCell(2048) for i in range(3)]
-    bw_cell_list = [tf.nn.rnn_cell.GRUCell(2048) for i in range(3)]
+        fw_cell_list = [tf.nn.rnn_cell.GRUCell(512) for i in range(2)]
+        bw_cell_list = [tf.nn.rnn_cell.GRUCell(512) for i in range(2)]
 
-    outputs, _, _ = tf.contrib.rnn.stack_bidirectional_dynamic_rnn(
-        fw_cell_list,
-        bw_cell_list,
-        gru_in,
-        dtype=tf.float32
-    )
+        multi_rnn_fW_cell = tf.nn.rnn_cell.MultiRNNCell(fw_cell_list)
+        multi_rnn_bw_cell = tf.nn.rnn_cell.MultiRNNCell(bw_cell_list)
 
-    bi_gru = tf.layers.dropout(outputs, rate=0.5, training=is_training)
+        ((outputs_fw, outputs_bw), (last_state_fw, last_state_bw)) = tf.nn.bidirectional_dynamic_rnn(
+            cell_fw=multi_rnn_fW_cell,
+            cell_bw=multi_rnn_bw_cell,
+            inputs=gru_in,
+            dtype=tf.float32)
 
-    shape = bi_gru.get_shape().as_list()  # [batch, width, 2*n_hidden]
-    bi_gru_reshaped = tf.reshape(bi_gru, [-1, shape[-1]])  # [batch x width, 2*n_hidden]
+        # bi_gru = tf.layers.dropout(bi_gru, rate=0.5, training=is_training)
+        # bi_gru=tf.concat(bi_gru,2)
 
-    W = weightVar([2048 * 2, cfg.num_class])
-    b = biasVar([cfg.num_class])
-    fc_out = tf.nn.bias_add(tf.matmul(bi_gru_reshaped, W), b)
+        # shape = bi_gru.get_shape().as_list()  # [batch, width, 2*n_hidden]
+        # bi_gru_reshaped = tf.reshape(bi_gru, [-1, shape[-1]])  # [batch x width, 2*n_hidden]
 
-    rnn_out = tf.reshape(fc_out, [-1, 38, cfg.num_class])  # [batch, width, n_classes]
 
-    # raw_pred = tf.argmax(tf.nn.softmax(rnn_out), axis=2)
+        # W = weightVar([512 * 2, cfg.num_class])
+        # b = biasVar([cfg.num_class])
+        # fc_out = tf.nn.bias_add(tf.matmul(bi_gru_reshaped, W), b)
+
+        fc_out=tf.layers.dense(inputs=last_state_fw[1]+last_state_bw[1],units=1024,activation=tf.nn.relu)
+        fc_out=tf.layers.dropout(fc_out,0.5,training=is_training)
+
+        logits=tf.layers.dense(inputs=fc_out,units=cfg.num_class)
 
     predictions = {
-        'classed': tf.argmax(tf.nn.softmax(rnn_out), axis=2),
-        'prob': tf.nn.softmax(rnn_out, name='softmax_tensor')
+        'classes': tf.argmax(tf.nn.softmax(logits), axis=1),
+        'prob': tf.nn.softmax(logits, name='softmax_tensor')
     }
 
     if mode == tf.estimator.ModeKeys.PREDICT:
@@ -130,7 +133,8 @@ if __name__ == "__main__":
     # train_labels = np.asarray(mnist.train.labels, dtype=np.int32)
     # eval_data = mnist.test.images  # Returns np.array
     # eval_labels = np.asarray(mnist.test.labels, dtype=np.int32)
-
+    test_solution = data_utility.AudioPrepare()
+    train_input_fn = test_solution.tf_input_fn_maker(is_training=False,n_epoch=1000)
 
     # Create the Estimator
     classifier = tf.estimator.Estimator(
@@ -138,7 +142,7 @@ if __name__ == "__main__":
 
     tensors_to_log = {"probabilities": "softmax_tensor"}
     logging_hook = tf.train.LoggingTensorHook(
-        tensors=tensors_to_log, every_n_iter=50)
+        tensors=tensors_to_log, every_n_iter=10)
 
     # train_input_fn = tf.estimator.inputs.numpy_input_fn(
     #     x={"x": train_data},
@@ -146,12 +150,10 @@ if __name__ == "__main__":
     #     batch_size=100,
     #     num_epochs=None,
     #     shuffle=True)
-    test_solution = data_utility.AudioPrepare()
-    train_input_fn = test_solution.tf_input_fn_maker(is_training=False)
 
     classifier.train(
         input_fn=train_input_fn,
-        steps=2000,
+        steps=20000,
         hooks=[logging_hook])
 
     # Evaluate the model and print results
