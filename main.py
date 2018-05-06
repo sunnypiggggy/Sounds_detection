@@ -91,25 +91,28 @@ def model_fn(features, labels, mode):
             inputs=gru_in,
             dtype=tf.float32)
 
-        # bi_gru = tf.layers.dropout(bi_gru, rate=0.5, training=is_training)
-        # bi_gru=tf.concat(bi_gru,2)
-
-        # shape = bi_gru.get_shape().as_list()  # [batch, width, 2*n_hidden]
-        # bi_gru_reshaped = tf.reshape(bi_gru, [-1, shape[-1]])  # [batch x width, 2*n_hidden]
-
-
-        # W = weightVar([512 * 2, cfg.num_class])
-        # b = biasVar([cfg.num_class])
-        # fc_out = tf.nn.bias_add(tf.matmul(bi_gru_reshaped, W), b)
 
         fc_out=tf.layers.dense(inputs=last_state_fw[1]+last_state_bw[1],units=1024,activation=tf.nn.relu)
         fc_out=tf.layers.dropout(fc_out,0.5,training=is_training)
 
         logits=tf.layers.dense(inputs=fc_out,units=cfg.num_class)
 
+        accuracy=tf.metrics.accuracy(labels=labels, predictions=tf.argmax(tf.nn.softmax(logits), axis=1))
+        tf.summary.scalar('train_accuracy',accuracy[1])
+
+
     predictions = {
-        'classes': tf.argmax(tf.nn.softmax(logits), axis=1),
-        'prob': tf.nn.softmax(logits, name='softmax_tensor')
+        'classes': tf.argmax(tf.nn.softmax(logits), axis=1,name='predict_class'),
+        'prob': tf.nn.softmax(logits, name='softmax_tensor'),
+        # 'accuracy':tf.metrics.accuracy(labels=labels,predictions=tf.argmax(tf.nn.softmax(logits), axis=1),name='accuracy'),
+        # 'mfcc_out':mfcc_net,
+        # 'mel_out':mel_net,
+        # 'angular':angular_net,
+        # 'output_fw':outputs_fw,
+        # 'output_bw':outputs_bw,
+        # 'last_state_fw':last_state_fw,
+        # 'last_state_bw':last_state_bw
+
     }
 
     if mode == tf.estimator.ModeKeys.PREDICT:
@@ -125,31 +128,27 @@ def model_fn(features, labels, mode):
         return tf.estimator.EstimatorSpec(mode=mode, loss=loss, train_op=train_op)
 
 
+    eval_metric={
+        'accuracy':tf.metrics.accuracy(labels=labels,predictions=predictions['classes'])
+    }
+    if mode ==tf.estimator.ModeKeys.EVAL:
+        return  tf.estimator.EstimatorSpec(mode=mode,loss=loss,eval_metric_ops=eval_metric)
+
+
+
 if __name__ == "__main__":
     tf.logging.set_verbosity(tf.logging.INFO)
 
-    # mnist = tf.contrib.learn.datasets.DATASETS['mnist']('./tmp/mnist')
-    # train_data = mnist.train.images  # Returns np.array
-    # train_labels = np.asarray(mnist.train.labels, dtype=np.int32)
-    # eval_data = mnist.test.images  # Returns np.array
-    # eval_labels = np.asarray(mnist.test.labels, dtype=np.int32)
     test_solution = data_utility.AudioPrepare()
-    train_input_fn = test_solution.tf_input_fn_maker(is_training=False,n_epoch=1000)
+    train_input_fn = test_solution.tf_input_fn_maker(is_training=True,n_epoch=100)
 
     # Create the Estimator
     classifier = tf.estimator.Estimator(
         model_fn=model_fn, model_dir="./crnn_model")
 
-    tensors_to_log = {"probabilities": "softmax_tensor"}
+    tensors_to_log = {"predictions":'softmax_tensor','predictions':'predict_class'}
     logging_hook = tf.train.LoggingTensorHook(
         tensors=tensors_to_log, every_n_iter=10)
-
-    # train_input_fn = tf.estimator.inputs.numpy_input_fn(
-    #     x={"x": train_data},
-    #     y=train_labels,
-    #     batch_size=100,
-    #     num_epochs=None,
-    #     shuffle=True)
 
     classifier.train(
         input_fn=train_input_fn,
@@ -157,10 +156,7 @@ if __name__ == "__main__":
         hooks=[logging_hook])
 
     # Evaluate the model and print results
-    # eval_input_fn = tf.estimator.inputs.numpy_input_fn(
-    #     x={"x": eval_data},
-    #     y=eval_labels,
-    #     num_epochs=2000,
-    #     shuffle=False)
-    # eval_results = mnist_classifier.evaluate(input_fn=eval_input_fn)
-    # print(eval_results)
+    test_solution = data_utility.AudioPrepare()
+    test_input_fn = test_solution.tf_input_fn_maker(is_training=False,n_epoch=1)
+    eval_results = classifier.evaluate(input_fn=test_input_fn,steps=1000)
+    print(eval_results)

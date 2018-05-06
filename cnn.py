@@ -5,8 +5,6 @@ import config as cfg
 import data_features_utility as data_utility
 from tensorflow.python import debug as tf_debug
 
-
-
 tf.logging.set_verbosity(tf.logging.INFO)
 
 
@@ -16,7 +14,7 @@ def cnn_model_fn(features, labels, mode):
     # Reshape X to 4-D tensor: [batch_size, width, height, channels]
     # MNIST images are 28x28 pixels, and have one color channel
     # input_layer = tf.reshape(features["mel"], [-1, 128, 313, 4])
-    input_layer =  tf.reshape(features['mel'], shape=[-1, cfg.mel_shape[0], cfg.mel_shape[1], 4])
+    input_layer = tf.reshape(features['mel'], shape=[-1, cfg.mel_shape[0], cfg.mel_shape[1], 4])
     # input_layer=features['mel'].set_shape([ cfg.mel_shape[0], cfg.mel_shape[1], 4])
     # Convolutional Layer #1
     # Computes 32 features using a 5x5 filter with ReLU activation.
@@ -34,7 +32,7 @@ def cnn_model_fn(features, labels, mode):
     # First max pooling layer with a 2x2 filter and stride of 2
     # Input Tensor Shape: [batch_size, 28, 28, 32]
     # Output Tensor Shape: [batch_size, 14, 14, 32]
-    pool1 = tf.layers.max_pooling2d(inputs=conv1, pool_size=2, strides=2,name='pool1')
+    pool1 = tf.layers.max_pooling2d(inputs=conv1, pool_size=2, strides=2, name='pool1')
 
     # Convolutional Layer #2
     # Computes 64 features using a 5x5 filter.
@@ -92,6 +90,8 @@ def cnn_model_fn(features, labels, mode):
         train_op = optimizer.minimize(
             loss=loss,
             global_step=tf.train.get_global_step())
+        accuracy = tf.metrics.accuracy(labels=labels, predictions=tf.argmax(tf.nn.softmax(logits), axis=1))
+        tf.summary.scalar('train_accuracy', accuracy[1])
         return tf.estimator.EstimatorSpec(mode=mode, loss=loss, train_op=train_op)
 
     # Add evaluation metrics (for EVAL mode)
@@ -110,11 +110,10 @@ def main(unused_argv):
     logging_hook = tf.train.LoggingTensorHook(
         tensors=tensors_to_log, every_n_iter=50)
 
-    hook=tf_debug.TensorBoardDebugHook("sunny-workstation:7000")
+    hook = tf_debug.TensorBoardDebugHook("sunny-workstation:7000")
 
     test_solution = data_utility.AudioPrepare()
-    train_input_fn = test_solution.tf_input_fn_maker_test()
-
+    train_input_fn = test_solution.tf_input_fn_maker(is_training=True, n_epoch=100)
 
     classifier.train(
         input_fn=train_input_fn,
@@ -125,5 +124,6 @@ def main(unused_argv):
     #     steps=20000,
     #     hooks=[hook])
 
+
 if __name__ == "__main__":
-  tf.app.run()
+    tf.app.run()
