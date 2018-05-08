@@ -99,10 +99,11 @@ def model_fn(features, labels, mode):
         rnn_outputs_merged = tf.concat(rnn_outputs, 2)
         rnn_finial=tf.unstack(rnn_outputs_merged,rnn_outputs_merged.get_shape().as_list()[1],1)[-1]
         # fc_out = tf.layers.dense(inputs=last_state_fw[-1] + last_state_bw[-1], units=512, activation=tf.nn.relu)
-        fc_out = tf.layers.dense(inputs=rnn_finial, units=512, activation=tf.nn.relu)
-        fc_out = tf.layers.dropout(fc_out, 0.5, training=is_training)
+        # fc_out = tf.layers.dense(inputs=rnn_finial, units=512, activation=tf.nn.relu)
+        # fc_out = tf.layers.dropout(fc_out, 0.5, training=is_training)
 
-    logits = tf.layers.dense(inputs=fc_out, units=cfg.num_class)
+    logits = tf.layers.dense(inputs=rnn_finial, units=cfg.num_class,activation=tf.nn.relu)
+    logits = tf.layers.dropout(logits, 0.5, training=is_training)
 
     accuracy = tf.metrics.accuracy(labels=labels, predictions=tf.argmax(tf.nn.softmax(logits), axis=1))
     accuracy=tf.Print(accuracy,[accuracy],'Acuracy__')
@@ -126,7 +127,7 @@ def model_fn(features, labels, mode):
     if mode == tf.estimator.ModeKeys.PREDICT:
         return tf.estimator.EstimatorSpec(mode=mode, predictions=predictions)
 
-    loss = tf.losses.sparse_softmax_cross_entropy(labels=labels, logits=fc_out)
+    loss = tf.losses.sparse_softmax_cross_entropy(labels=labels, logits=logits)
 
     if mode == tf.estimator.ModeKeys.TRAIN:
         update_op = tf.get_collection(tf.GraphKeys.UPDATE_OPS)
@@ -154,7 +155,7 @@ if __name__ == "__main__":
     classifier = tf.estimator.Estimator(
         model_fn=model_fn, model_dir="./crnn_model")
 
-    tensors_to_log = { 'class': 'predict_class',}
+    tensors_to_log = { 'class': 'predict_class','prob':'softmax_tensor'}
     logging_hook = tf.train.LoggingTensorHook(
         tensors=tensors_to_log, every_n_iter=50)
 
@@ -166,5 +167,9 @@ if __name__ == "__main__":
     # Evaluate the model and print results
     test_solution = data_utility.AudioPrepare()
     test_input_fn = test_solution.tf_input_fn_maker(is_training=False, n_epoch=1)
-    eval_results = classifier.evaluate(input_fn=test_input_fn, steps=100)
+
+    tensors_to_log = { 'acc': 'accuracy',}
+    logging_hook = tf.train.LoggingTensorHook(
+        tensors=tensors_to_log, every_n_iter=10)
+    eval_results = classifier.evaluate(input_fn=test_input_fn, steps=100,hooks=[logging_hook])
     print(eval_results)

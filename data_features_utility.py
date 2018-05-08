@@ -503,23 +503,23 @@ if __name__ == "__main__":
 
     # train_iput_fn = test_solution.tf_input_fn_maker(dataset)
 
-    sess = tf.InteractiveSession()
-    while True:
-        # input_fn = test_solution.tf_input_fn_maker_test()
-        input_fn,label_fn=test_solution.tf_input_fn_maker()
-        X= input_fn()
-        Y=label_fn()
-        try:
-            feature ,label= sess.run([input_fn,label_fn])
-            rosa_display.specshow(feature['mel'][0, :, :, 0])
-            plt.show()
-            # label = sess.run(next_element['label'])
-            # mfcc= sess.run(next_element['mfcc'])
-            # print(mfcc)
-            # print(label)
-        except tf.errors.OutOfRangeError:
-            print("End of dataset")
-            break
+    # sess = tf.InteractiveSession()
+    # while True:
+    #     # input_fn = test_solution.tf_input_fn_maker_test()
+    #     input_fn,label_fn=test_solution.tf_input_fn_maker()
+    #     X= input_fn()
+    #     Y=label_fn()
+    #     try:
+    #         feature ,label= sess.run([input_fn,label_fn])
+    #         rosa_display.specshow(feature['mel'][0, :, :, 0])
+    #         plt.show()
+    #         # label = sess.run(next_element['label'])
+    #         # mfcc= sess.run(next_element['mfcc'])
+    #         # print(mfcc)
+    #         # print(label)
+    #     except tf.errors.OutOfRangeError:
+    #         print("End of dataset")
+    #         break
 
     # feature_dir_name = 'features_tfrecord'
     # if not os.path.exists(feature_dir_name):

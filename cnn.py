@@ -33,6 +33,7 @@ def cnn_model_fn(features, labels, mode):
         net = tf.layers.batch_normalization(net, axis=1, training=is_training)
         net=tf.nn.relu(features=net)
         net = tf.layers.max_pooling2d(inputs=net, pool_size=2, strides=2)
+        net=tf.layers.dropout(net,0.5,training=is_training)
 
     with tf.name_scope('conv2'):
         net = tf.layers.conv2d(
@@ -44,6 +45,7 @@ def cnn_model_fn(features, labels, mode):
         net = tf.layers.batch_normalization(net, axis=1, training=is_training)
         net = tf.nn.relu(features=net)
         net = tf.layers.max_pooling2d(inputs=net, pool_size=2, strides=2)
+        net = tf.layers.dropout(net, 0.5, training=is_training)
 
     with tf.name_scope('conv3'):
         net = tf.layers.conv2d(
@@ -55,6 +57,7 @@ def cnn_model_fn(features, labels, mode):
         net = tf.layers.batch_normalization(net, axis=1, training=is_training)
         net = tf.nn.relu(features=net)
         net = tf.layers.max_pooling2d(inputs=net, pool_size=2, strides=2)
+        net = tf.layers.dropout(net, 0.5, training=is_training)
 
 
     with tf.name_scope('conv4'):
@@ -67,6 +70,7 @@ def cnn_model_fn(features, labels, mode):
         net = tf.layers.batch_normalization(net, axis=1, training=is_training)
         net = tf.nn.relu(features=net)
         net = tf.layers.max_pooling2d(inputs=net, pool_size=2, strides=2)
+        net = tf.layers.dropout(net, 0.5, training=is_training)
 
 
 
@@ -80,6 +84,8 @@ def cnn_model_fn(features, labels, mode):
         net = tf.layers.batch_normalization(net, axis=1, training=is_training)
         net = tf.nn.relu(features=net)
         net = tf.layers.max_pooling2d(inputs=net, pool_size=2, strides=2)
+        net = tf.layers.dropout(net, 0.5, training=is_training)
+
 
     with tf.name_scope('conv6'):
         net = tf.layers.conv2d(
@@ -91,10 +97,7 @@ def cnn_model_fn(features, labels, mode):
         net = tf.layers.batch_normalization(net, axis=1, training=is_training)
         net = tf.nn.relu(features=net)
         net = tf.layers.max_pooling2d(inputs=net, pool_size=2, strides=2)
-
-
-
-
+        net = tf.layers.dropout(net, 0.5, training=is_training)
 
 
     net_flat = tf.reshape(net, [-1,2*4*64])
@@ -112,7 +115,7 @@ def cnn_model_fn(features, labels, mode):
     # Logits layer
     # Input Tensor Shape: [batch_size, 1024]
     # Output Tensor Shape: [batch_size, 10]
-    logits = tf.layers.dense(inputs=dropout, units=9)
+    logits = tf.layers.dense(inputs=dropout, units=9,activation=tf.nn.relu)
 
 
     predictions = {
@@ -131,10 +134,11 @@ def cnn_model_fn(features, labels, mode):
     if mode == tf.estimator.ModeKeys.TRAIN:
         update_op = tf.get_collection(tf.GraphKeys.UPDATE_OPS)
         with tf.control_dependencies(update_op):
-            optimizer = tf.train.GradientDescentOptimizer(learning_rate=0.001)
+            optimizer = tf.train.AdagradOptimizer(learning_rate=0.001)
             train_op = optimizer.minimize(
                 loss=loss,
                 global_step=tf.train.get_global_step())
+
             accuracy = tf.metrics.accuracy(labels=labels, predictions=tf.argmax(tf.nn.softmax(logits), axis=1))
             tf.summary.scalar('train_accuracy', accuracy[1])
             return tf.estimator.EstimatorSpec(mode=mode, loss=loss, train_op=train_op)
@@ -164,11 +168,13 @@ def main(unused_argv):
         input_fn=train_input_fn,
         steps=20000,
         hooks=[logging_hook])
-    # classifier.train(
-    #     input_fn=train_input_fn,
-    #     steps=20000,
-    #     hooks=[hook])
 
+
+    # Evaluate the model and print results
+    test_solution = data_utility.AudioPrepare()
+    test_input_fn = test_solution.tf_input_fn_maker(is_training=False, n_epoch=1)
+    eval_results = classifier.evaluate(input_fn=test_input_fn, steps=300)
+    print(eval_results)
 
 if __name__ == "__main__":
     tf.app.run()
