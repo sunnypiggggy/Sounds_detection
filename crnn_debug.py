@@ -5,9 +5,10 @@ import config as cfg
 import data_features_utility as data_utility
 
 
-def conv_layers(input, is_training, pooling_config=None, name=None, use_bn=False, use_dropout=True):
+def conv_layers(input, is_training, pooling_config=None, name=None, use_bn=True, use_dropout=True):
     if pooling_config == None:
         pooling_config = [2, 2, 2]
+
     with tf.variable_scope('conv1_' + name):
 
         net = tf.layers.conv2d(
@@ -70,18 +71,15 @@ def model_fn(features, labels, mode):
 
     is_training = (mode == tf.estimator.ModeKeys.TRAIN)
 
-    mfcc_net = conv_layers(mfccs, is_training, pooling_config=[4, 2, 2], name='mfcc', use_bn=True, use_dropout=True)
+    # mfcc_net = conv_layers(mfccs, is_training, pooling_config=[4, 2, 2], name='mfcc', use_bn=True, use_dropout=True)
     mel_net = conv_layers(mels, is_training, pooling_config=[4, 4, 2], name='mel', use_bn=True, use_dropout=True)
-    angular_net = conv_layers(angulars, is_training, pooling_config=[4, 4, 2], name='angular', use_bn=True,
-                              use_dropout=True)
-
-    # tf.summary.tensor_summary('mfcc_net',mfcc_net)
-    # tf.summary.tensor_summary('mel_net', mel_net)
-    # tf.summary.tensor_summary('angular_net', angular_net)
+    # angular_net = conv_layers(angulars, is_training, pooling_config=[4, 4, 2], name='angular', use_bn=True,
+    #                           use_dropout=True)
 
     with tf.variable_scope('BiGRU'):
-        gru_in = tf.concat([mfcc_net, mel_net, angular_net], axis=2)
-        # gru_in=mel_net
+        # gru_in = tf.concat([mfcc_net, mel_net, angular_net], axis=2)
+        # gru_in=tf.concat([mel_net, angular_net], axis=2)
+        gru_in=mel_net
 
         fw_cell_list = [tf.nn.rnn_cell.GRUCell(256) for _ in range(3)]
         bw_cell_list = [tf.nn.rnn_cell.GRUCell(256) for _ in range(3)]
@@ -89,31 +87,31 @@ def model_fn(features, labels, mode):
         multi_rnn_fW_cell = tf.nn.rnn_cell.MultiRNNCell(fw_cell_list)
         multi_rnn_bw_cell = tf.nn.rnn_cell.MultiRNNCell(bw_cell_list)
 
-        rnn_outputs, (last_state_fw, last_state_bw) =  tf.nn.bidirectional_dynamic_rnn(
-                                 cell_fw=multi_rnn_fW_cell,
-                                 cell_bw=multi_rnn_bw_cell,
-                                 inputs=gru_in,
-                                 dtype=tf.float32)
-
+        rnn_outputs, (last_state_fw, last_state_bw) = tf.nn.bidirectional_dynamic_rnn(
+            cell_fw=multi_rnn_fW_cell,
+            cell_bw=multi_rnn_bw_cell,
+            inputs=gru_in,
+            dtype=tf.float32)
 
         rnn_outputs_merged = tf.concat(rnn_outputs, 2)
-        rnn_finial=tf.unstack(rnn_outputs_merged,rnn_outputs_merged.get_shape().as_list()[1],1)[-1]
+        rnn_finial = tf.unstack(rnn_outputs_merged, rnn_outputs_merged.get_shape().as_list()[1], 1)[-1]
         # fc_out = tf.layers.dense(inputs=last_state_fw[-1] + last_state_bw[-1], units=512, activation=tf.nn.relu)
         # fc_out = tf.layers.dense(inputs=rnn_finial, units=512, activation=tf.nn.relu)
         # fc_out = tf.layers.dropout(fc_out, 0.5, training=is_training)
 
-    logits = tf.layers.dense(inputs=rnn_finial, units=cfg.num_class,activation=tf.nn.relu)
+    logits = tf.layers.dense(inputs=rnn_finial, units=cfg.num_class, activation=tf.nn.relu)
     logits = tf.layers.dropout(logits, 0.5, training=is_training)
 
     accuracy = tf.metrics.accuracy(labels=labels, predictions=tf.argmax(tf.nn.softmax(logits), axis=1))
-    accuracy=tf.Print(accuracy,[accuracy],'Acuracy__')
+    accuracy = tf.Print(accuracy, [accuracy], 'Acuracy__')
     tf.summary.scalar('train_accuracy', accuracy[1])
 
     predictions = {
         'classes': tf.argmax(tf.nn.softmax(logits), axis=1, name='predict_class'),
         'prob': tf.nn.softmax(logits, name='softmax_tensor'),
         # 'label':labels
-        'training_accuracy':tf.metrics.accuracy(labels=labels, predictions=tf.argmax(tf.nn.softmax(logits), axis=1),name='xxx'),
+        'training_accuracy': tf.metrics.accuracy(labels=labels, predictions=tf.argmax(tf.nn.softmax(logits), axis=1),
+                                                 name='xxx'),
         # 'mfcc_out':mfcc_net,
         # 'mel_out':mel_net,
         # 'angular':angular_net,
@@ -155,7 +153,7 @@ if __name__ == "__main__":
     classifier = tf.estimator.Estimator(
         model_fn=model_fn, model_dir="./crnn_model")
 
-    tensors_to_log = { 'class': 'predict_class','prob':'softmax_tensor'}
+    tensors_to_log = {'class': 'predict_class', 'prob': 'softmax_tensor'}
     logging_hook = tf.train.LoggingTensorHook(
         tensors=tensors_to_log, every_n_iter=50)
 
@@ -168,8 +166,8 @@ if __name__ == "__main__":
     test_solution = data_utility.AudioPrepare()
     test_input_fn = test_solution.tf_input_fn_maker(is_training=False, n_epoch=1)
 
-    tensors_to_log = { 'acc': 'accuracy',}
+    tensors_to_log = {'acc': 'accuracy', }
     logging_hook = tf.train.LoggingTensorHook(
         tensors=tensors_to_log, every_n_iter=10)
-    eval_results = classifier.evaluate(input_fn=test_input_fn, steps=100,hooks=[logging_hook])
+    eval_results = classifier.evaluate(input_fn=test_input_fn, steps=100, hooks=[logging_hook])
     print(eval_results)
