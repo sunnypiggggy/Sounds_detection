@@ -335,7 +335,7 @@ class AudioPrepare():
         # except Exception as e:
         #     print(e)
 
-    def save_feature_TFrecord_mutipross(self, dataset_dir="DCASE2018-task5-dev", feature_dir_name='features_tfrecord'):
+    def save_feature_TFrecord_mutipross(self, dataset_dir="DCASE2018-task5-dev", feature_dir_name='features_tfrecord',trainsets=True):
         if not os.path.exists(feature_dir_name):
             os.mkdir(feature_dir_name)
 

@@ -15,53 +15,95 @@ def cnn_model_fn(features, labels, mode):
     # MNIST images are 28x28 pixels, and have one color channel
     # input_layer = tf.reshape(features["mel"], [-1, 128, 313, 4])
     input_layer = tf.reshape(features['mel'], shape=[-1, cfg.mel_shape[0], cfg.mel_shape[1], 4])
+
+    is_training = (mode == tf.estimator.ModeKeys.TRAIN)
     # input_layer=features['mel'].set_shape([ cfg.mel_shape[0], cfg.mel_shape[1], 4])
     # Convolutional Layer #1
     # Computes 32 features using a 5x5 filter with ReLU activation.
     # Padding is added to preserve width and height.
     # Input Tensor Shape: [batch_size, 28, 28, 1]'
     # Output Tensor Shape: [batch_size, 28, 28, 32]
-    conv1 = tf.layers.conv2d(
-        inputs=input_layer,
-        filters=64,
-        kernel_size=[5, 5],
-        padding="same",
-        activation=tf.nn.relu)
+    with tf.name_scope('conv1'):
+        net = tf.layers.conv2d(
+            inputs=input_layer,
+            filters=64,
+            kernel_size=[5, 5],
+            padding="same",
+            activation=None)
+        net = tf.layers.batch_normalization(net, axis=1, training=is_training)
+        net=tf.nn.relu(features=net)
+        net = tf.layers.max_pooling2d(inputs=net, pool_size=2, strides=2)
 
-    # Pooling Layer #1
-    # First max pooling layer with a 2x2 filter and stride of 2
-    # Input Tensor Shape: [batch_size, 28, 28, 32]
-    # Output Tensor Shape: [batch_size, 14, 14, 32]
-    pool1 = tf.layers.max_pooling2d(inputs=conv1, pool_size=2, strides=2, name='pool1')
+    with tf.name_scope('conv2'):
+        net = tf.layers.conv2d(
+            inputs=net,
+            filters=64,
+            kernel_size=[5, 5],
+            padding="same",
+            activation=None)
+        net = tf.layers.batch_normalization(net, axis=1, training=is_training)
+        net = tf.nn.relu(features=net)
+        net = tf.layers.max_pooling2d(inputs=net, pool_size=2, strides=2)
 
-    # Convolutional Layer #2
-    # Computes 64 features using a 5x5 filter.
-    # Padding is added to preserve width and height.
-    # Input Tensor Shape: [batch_size, 14, 14, 32]
-    # Output Tensor Shape: [batch_size, 14, 14, 64]
-    conv2 = tf.layers.conv2d(
-        inputs=pool1,
-        filters=64,
-        kernel_size=[5, 5],
-        padding="same",
-        activation=tf.nn.relu)
+    with tf.name_scope('conv3'):
+        net = tf.layers.conv2d(
+            inputs=net,
+            filters=64,
+            kernel_size=[5, 5],
+            padding="same",
+            activation=None)
+        net = tf.layers.batch_normalization(net, axis=1, training=is_training)
+        net = tf.nn.relu(features=net)
+        net = tf.layers.max_pooling2d(inputs=net, pool_size=2, strides=2)
 
-    # Pooling Layer #2
-    # Second max pooling layer with a 2x2 filter and stride of 2
-    # Input Tensor Shape: [batch_size, 14, 14, 64]
-    # Output Tensor Shape: [batch_size, 7, 7, 64]
-    pool2 = tf.layers.max_pooling2d(inputs=conv2, pool_size=[2, 2], strides=2)
 
-    # Flatten tensor into a batch of vectors
-    # Input Tensor Shape: [batch_size, 7, 7, 64]
-    # Output Tensor Shape: [batch_size, 7 * 7 * 64]
-    pool2_flat = tf.reshape(pool2, [-1, 32 * 78 * 64])
+    with tf.name_scope('conv4'):
+        net = tf.layers.conv2d(
+            inputs=net,
+            filters=64,
+            kernel_size=[5, 5],
+            padding="same",
+            activation=None)
+        net = tf.layers.batch_normalization(net, axis=1, training=is_training)
+        net = tf.nn.relu(features=net)
+        net = tf.layers.max_pooling2d(inputs=net, pool_size=2, strides=2)
+
+
+
+    with tf.name_scope('conv5'):
+        net = tf.layers.conv2d(
+            inputs=net,
+            filters=64,
+            kernel_size=[5, 5],
+            padding="same",
+            activation=None)
+        net = tf.layers.batch_normalization(net, axis=1, training=is_training)
+        net = tf.nn.relu(features=net)
+        net = tf.layers.max_pooling2d(inputs=net, pool_size=2, strides=2)
+
+    with tf.name_scope('conv6'):
+        net = tf.layers.conv2d(
+            inputs=net,
+            filters=64,
+            kernel_size=[5, 5],
+            padding="same",
+            activation=None)
+        net = tf.layers.batch_normalization(net, axis=1, training=is_training)
+        net = tf.nn.relu(features=net)
+        net = tf.layers.max_pooling2d(inputs=net, pool_size=2, strides=2)
+
+
+
+
+
+
+    net_flat = tf.reshape(net, [-1,2*4*64])
 
     # Dense Layer
     # Densely connected layer with 1024 neurons
     # Input Tensor Shape: [batch_size, 7 * 7 * 64]
     # Output Tensor Shape: [batch_size, 1024]
-    dense = tf.layers.dense(inputs=pool2_flat, units=1024, activation=tf.nn.relu)
+    dense = tf.layers.dense(inputs=net_flat, units=1024, activation=tf.nn.relu)
 
     # Add dropout operation; 0.6 probability that element will be kept
     dropout = tf.layers.dropout(
@@ -71,11 +113,12 @@ def cnn_model_fn(features, labels, mode):
     # Input Tensor Shape: [batch_size, 1024]
     # Output Tensor Shape: [batch_size, 10]
     logits = tf.layers.dense(inputs=dropout, units=9)
+
+
     predictions = {
         # Generate predictions (for PREDICT and EVAL mode)
         "classes": tf.argmax(input=logits, axis=1),
-        # Add `softmax_tensor` to the graph. It is used for PREDICT and by the
-        # `logging_hook`.
+
         "probabilities": tf.nn.softmax(logits, name="softmax_tensor")
     }
     if mode == tf.estimator.ModeKeys.PREDICT:
@@ -86,13 +129,15 @@ def cnn_model_fn(features, labels, mode):
 
     # Configure the Training Op (for TRAIN mode)
     if mode == tf.estimator.ModeKeys.TRAIN:
-        optimizer = tf.train.GradientDescentOptimizer(learning_rate=0.001)
-        train_op = optimizer.minimize(
-            loss=loss,
-            global_step=tf.train.get_global_step())
-        accuracy = tf.metrics.accuracy(labels=labels, predictions=tf.argmax(tf.nn.softmax(logits), axis=1))
-        tf.summary.scalar('train_accuracy', accuracy[1])
-        return tf.estimator.EstimatorSpec(mode=mode, loss=loss, train_op=train_op)
+        update_op = tf.get_collection(tf.GraphKeys.UPDATE_OPS)
+        with tf.control_dependencies(update_op):
+            optimizer = tf.train.GradientDescentOptimizer(learning_rate=0.001)
+            train_op = optimizer.minimize(
+                loss=loss,
+                global_step=tf.train.get_global_step())
+            accuracy = tf.metrics.accuracy(labels=labels, predictions=tf.argmax(tf.nn.softmax(logits), axis=1))
+            tf.summary.scalar('train_accuracy', accuracy[1])
+            return tf.estimator.EstimatorSpec(mode=mode, loss=loss, train_op=train_op)
 
     # Add evaluation metrics (for EVAL mode)
     eval_metric_ops = {
