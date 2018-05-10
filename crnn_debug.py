@@ -20,9 +20,9 @@ def conv_layers(input, is_training, pooling_config=None, name=None, use_bn=True,
         if use_bn == True:
             net = tf.layers.batch_normalization(net, axis=1, training=is_training)
 
-        pool1 = tf.layers.max_pooling2d(net, pool_size=2, strides=(pooling_config[0], 2), padding='same')
+        net = tf.layers.max_pooling2d(net, pool_size=2, strides=(pooling_config[0], 2), padding='same')
         if use_dropout == True:
-            pool1 = tf.layers.dropout(pool1, rate=0.5, training=is_training)
+            pool1 = tf.layers.dropout(net, rate=0.5, training=is_training)
 
     with tf.variable_scope('conv2_' + name):
         net = tf.layers.conv2d(
@@ -59,6 +59,141 @@ def conv_layers(input, is_training, pooling_config=None, name=None, use_bn=True,
     return output
 
 
+def conv_layers2(input, is_training, pooling_config=None, name=None, use_bn=True, use_dropout=True):
+    if pooling_config == None:
+        pooling_config = [2, 2, 2]
+
+    with tf.variable_scope('conv1_' + name):
+
+        net = tf.layers.conv2d(
+            input,
+            filters=32,
+            kernel_size=3,
+            padding='same',
+            activation=None)
+        if use_bn == True:
+            net = tf.layers.batch_normalization(net, axis=1, training=is_training)
+        net = tf.nn.relu(net)
+        net = tf.layers.max_pooling2d(net, pool_size=2, strides=(pooling_config[0], 2), padding='valid')
+        if use_dropout == True:
+            pool1 = tf.layers.dropout(net, rate=0.5, training=is_training)
+
+    with tf.variable_scope('conv2_' + name):
+        net = tf.layers.conv2d(
+            pool1,
+            filters=32,
+            kernel_size=3,
+            padding='same',
+            activation=None)
+        if use_bn == True:
+            net = tf.layers.batch_normalization(net, training=is_training)
+        net = tf.nn.relu(net)
+        pool2 = tf.layers.max_pooling2d(net, pool_size=2, strides=(pooling_config[1], 2), padding='valid')
+        if use_dropout == True:
+            pool2 = tf.layers.dropout(pool2, rate=0.5, training=is_training)
+
+    with tf.variable_scope('conv3_' + name):
+        net = tf.layers.conv2d(
+            pool2,
+            filters=32,
+            kernel_size=3,
+            activation=None)
+        if use_bn == True:
+            net = tf.layers.batch_normalization(net, training=is_training)
+        net = tf.nn.relu(net)
+        pool3 = tf.layers.max_pooling2d(net, pool_size=2, strides=(pooling_config[2], 2), padding='valid')
+        if use_dropout == True:
+            pool3 = tf.layers.dropout(pool3, rate=0.5, training=is_training)
+
+    with tf.variable_scope('Reshape_cnn_' + name):
+        output_shape = pool3.get_shape().as_list()  # [batch,height,width,features]
+        output = tf.transpose(pool3, [0, 2, 1, 3], name='transposed')
+        output = tf.reshape(output, shape=[-1, output_shape[2], output_shape[1] * output_shape[3]],
+                            name='reshaped')  # [batch,width,heigth*features]
+    return output
+
+
+def conv_layers3(input, is_training, name=None):
+    with tf.name_scope('conv1'):
+        net = tf.layers.conv2d(
+            inputs=input,
+            filters=64,
+            kernel_size=[5, 5],
+            padding="same",
+            activation=None)
+        net = tf.layers.batch_normalization(net, axis=1, training=is_training)
+        net = tf.nn.relu(features=net)
+        net = tf.layers.max_pooling2d(inputs=net, pool_size=2, strides=2)
+        net = tf.layers.dropout(net, 0.5, training=is_training)
+
+    with tf.name_scope('conv2'):
+        net = tf.layers.conv2d(
+            inputs=net,
+            filters=64,
+            kernel_size=[5, 5],
+            padding="same",
+            activation=None)
+        net = tf.layers.batch_normalization(net, axis=1, training=is_training)
+        net = tf.nn.relu(features=net)
+        net = tf.layers.max_pooling2d(inputs=net, pool_size=2, strides=2)
+        net = tf.layers.dropout(net, 0.5, training=is_training)
+
+    with tf.name_scope('conv3'):
+        net = tf.layers.conv2d(
+            inputs=net,
+            filters=64,
+            kernel_size=[5, 5],
+            padding="same",
+            activation=None)
+        net = tf.layers.batch_normalization(net, axis=1, training=is_training)
+        net = tf.nn.relu(features=net)
+        net = tf.layers.max_pooling2d(inputs=net, pool_size=2, strides=2)
+        net = tf.layers.dropout(net, 0.5, training=is_training)
+
+    with tf.name_scope('conv4'):
+        net = tf.layers.conv2d(
+            inputs=net,
+            filters=64,
+            kernel_size=[5, 5],
+            padding="same",
+            activation=None)
+        net = tf.layers.batch_normalization(net, axis=1, training=is_training)
+        net = tf.nn.relu(features=net)
+        net = tf.layers.max_pooling2d(inputs=net, pool_size=2, strides=2)
+        net = tf.layers.dropout(net, 0.5, training=is_training)
+
+    with tf.name_scope('conv5'):
+        net = tf.layers.conv2d(
+            inputs=net,
+            filters=64,
+            kernel_size=[5, 5],
+            padding="same",
+            activation=None)
+        net = tf.layers.batch_normalization(net, axis=1, training=is_training)
+        net = tf.nn.relu(features=net)
+        net = tf.layers.max_pooling2d(inputs=net, pool_size=2, strides=2)
+        net = tf.layers.dropout(net, 0.5, training=is_training)
+
+    with tf.name_scope('conv6'):
+        net = tf.layers.conv2d(
+            inputs=net,
+            filters=64,
+            kernel_size=[5, 5],
+            padding="same",
+            activation=None)
+        net = tf.layers.batch_normalization(net, axis=1, training=is_training)
+        net = tf.nn.relu(features=net)
+        net = tf.layers.max_pooling2d(inputs=net, pool_size=2, strides=2)
+        net = tf.layers.dropout(net, 0.5, training=is_training)
+
+    with tf.variable_scope('Reshape_cnn_' + name):
+        output_shape = net.get_shape().as_list()  # [batch,height,width,features]
+        output = tf.transpose(net, [0, 2, 1, 3], name='transposed')
+        output = tf.reshape(output, shape=[-1, output_shape[2], output_shape[1] * output_shape[3]],
+                            name='reshaped')  # [batch,width,heigth*features]
+    return output
+
+
 def model_fn(features, labels, mode):
     mels = tf.reshape(features['mel'], shape=[-1, cfg.mel_shape[0], cfg.mel_shape[1], 4])
     mfccs = tf.reshape(features['mfcc'], shape=[-1, cfg.mfcc_shape[0], cfg.mfcc_shape[1], 4])
@@ -71,18 +206,42 @@ def model_fn(features, labels, mode):
 
     is_training = (mode == tf.estimator.ModeKeys.TRAIN)
 
-    # mfcc_net = conv_layers(mfccs, is_training, pooling_config=[4, 2, 2], name='mfcc', use_bn=True, use_dropout=True)
-    mel_net = conv_layers(mels, is_training, pooling_config=[4, 4, 2], name='mel', use_bn=True, use_dropout=True)
-    # angular_net = conv_layers(angulars, is_training, pooling_config=[4, 4, 2], name='angular', use_bn=True,
+    # mfcc_net = conv_layers2(mfccs, is_training, pooling_config=[4, 2, 2], name='mfcc', use_bn=True, use_dropout=True)
+    mel_net = conv_layers2(mels, is_training, pooling_config=[4, 4, 2], name='mel', use_bn=True, use_dropout=True)
+    # angular_net = conv_layers2(angulars, is_training, pooling_config=[4, 4, 2], name='angular', use_bn=True,
     #                           use_dropout=True)
+    # mel_net = conv_layers3(mels, is_training, name='mel')
 
     with tf.variable_scope('BiGRU'):
         # gru_in = tf.concat([mfcc_net, mel_net, angular_net], axis=2)
         # gru_in=tf.concat([mel_net, angular_net], axis=2)
-        gru_in=mel_net
+        gru_in = mel_net
+        # gru_in = tf.Print( mel_net,[mel_net],'debugging: ')
 
-        fw_cell_list = [tf.nn.rnn_cell.GRUCell(256) for _ in range(3)]
-        bw_cell_list = [tf.nn.rnn_cell.GRUCell(256) for _ in range(3)]
+        # fw_cell_list = [tf.nn.rnn_cell.GRUCell(256) for _ in range(3)]
+        # bw_cell_list = [tf.nn.rnn_cell.GRUCell(256) for _ in range(3)]
+
+        fw_cell_list = [
+            tf.nn.rnn_cell.DropoutWrapper(tf.nn.rnn_cell.GRUCell(256, kernel_initializer=tf.orthogonal_initializer),
+                                          input_keep_prob=0.5, output_keep_prob=0.5) for _ in range(3)]
+        bw_cell_list = [
+            tf.nn.rnn_cell.DropoutWrapper(tf.nn.rnn_cell.GRUCell(256, kernel_initializer=tf.orthogonal_initializer),
+                                          input_keep_prob=0.5, output_keep_prob=0.5) for _ in range(3)]
+
+        fw_cell_list = [tf.nn.rnn_cell.DropoutWrapper(tf.nn.rnn_cell.GRUCell(256), state_keep_prob=0.5) for _ in
+                        range(1)]
+        bw_cell_list = [tf.nn.rnn_cell.DropoutWrapper(tf.nn.rnn_cell.GRUCell(256), state_keep_prob=0.5) for _ in
+                        range(1)]
+
+        # fw_cell_list = [tf.nn.rnn_cell.GRUCell(256, kernel_initializer=tf.orthogonal_initializer)for _ in range(3)]
+        # bw_cell_list = [tf.nn.rnn_cell.GRUCell(256, kernel_initializer=tf.orthogonal_initializer) for _ in range(3)]
+
+        # fw_cell_list = [
+        #     tf.nn.rnn_cell.DropoutWrapper(tf.nn.rnn_cell.GRUCell(256),
+        #                                   input_keep_prob=0.5, output_keep_prob=0.5) for _ in range(3)]
+        # bw_cell_list = [
+        #     tf.nn.rnn_cell.DropoutWrapper(tf.nn.rnn_cell.GRUCell(256),
+        #                                   input_keep_prob=0.5, output_keep_prob=0.5) for _ in range(3)]
 
         multi_rnn_fW_cell = tf.nn.rnn_cell.MultiRNNCell(fw_cell_list)
         multi_rnn_bw_cell = tf.nn.rnn_cell.MultiRNNCell(bw_cell_list)
@@ -95,12 +254,16 @@ def model_fn(features, labels, mode):
 
         rnn_outputs_merged = tf.concat(rnn_outputs, 2)
         rnn_finial = tf.unstack(rnn_outputs_merged, rnn_outputs_merged.get_shape().as_list()[1], 1)[-1]
+
         # fc_out = tf.layers.dense(inputs=last_state_fw[-1] + last_state_bw[-1], units=512, activation=tf.nn.relu)
         # fc_out = tf.layers.dense(inputs=rnn_finial, units=512, activation=tf.nn.relu)
         # fc_out = tf.layers.dropout(fc_out, 0.5, training=is_training)
 
-    logits = tf.layers.dense(inputs=rnn_finial, units=cfg.num_class, activation=tf.nn.relu)
+    # logits = tf.layers.dense(inputs=rnn_finial, units=cfg.num_class, activation=None)
+    # rnn_finial=last_state_fw+last_state_bw
+    logits = tf.layers.dense(inputs=rnn_finial, units=cfg.num_class, activation=None)
     logits = tf.layers.dropout(logits, 0.5, training=is_training)
+    # logits = tf.nn.sigmoid(logits)
 
     accuracy = tf.metrics.accuracy(labels=labels, predictions=tf.argmax(tf.nn.softmax(logits), axis=1))
     accuracy = tf.Print(accuracy, [accuracy], 'Acuracy__')
@@ -130,7 +293,7 @@ def model_fn(features, labels, mode):
     if mode == tf.estimator.ModeKeys.TRAIN:
         update_op = tf.get_collection(tf.GraphKeys.UPDATE_OPS)
         with tf.control_dependencies(update_op):
-            optimizer = tf.train.AdagradOptimizer(learning_rate=0.1)
+            optimizer = tf.train.AdamOptimizer(learning_rate=0.0001)
             train_op = optimizer.minimize(
                 loss=loss,
                 global_step=tf.train.get_global_step())
@@ -155,7 +318,7 @@ if __name__ == "__main__":
 
     tensors_to_log = {'class': 'predict_class', 'prob': 'softmax_tensor'}
     logging_hook = tf.train.LoggingTensorHook(
-        tensors=tensors_to_log, every_n_iter=50)
+        tensors=tensors_to_log, every_n_iter=10)
 
     classifier.train(
         input_fn=train_input_fn,

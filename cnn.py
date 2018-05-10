@@ -15,6 +15,7 @@ def cnn_model_fn(features, labels, mode):
     # MNIST images are 28x28 pixels, and have one color channel
     # input_layer = tf.reshape(features["mel"], [-1, 128, 313, 4])
     input_layer = tf.reshape(features['mel'], shape=[-1, cfg.mel_shape[0], cfg.mel_shape[1], 4])
+    # input_layer = tf.reshape(features['angular'], shape=[-1, cfg.anguler_shape[0], cfg.anguler_shape[1], 6])
 
     is_training = (mode == tf.estimator.ModeKeys.TRAIN)
     # input_layer=features['mel'].set_shape([ cfg.mel_shape[0], cfg.mel_shape[1], 4])
@@ -27,50 +28,50 @@ def cnn_model_fn(features, labels, mode):
         net = tf.layers.conv2d(
             inputs=input_layer,
             filters=64,
-            kernel_size=[5, 5],
+            kernel_size=3,
             padding="same",
             activation=None)
-        net = tf.layers.batch_normalization(net, axis=1, training=is_training)
+        net = tf.layers.batch_normalization(net,  training=is_training)
         net=tf.nn.relu(features=net)
         net = tf.layers.max_pooling2d(inputs=net, pool_size=2, strides=2)
-        net=tf.layers.dropout(net,0.5,training=is_training)
+        # net=tf.layers.dropout(net,0.5,training=is_training)
 
     with tf.name_scope('conv2'):
         net = tf.layers.conv2d(
             inputs=net,
             filters=64,
-            kernel_size=[5, 5],
+            kernel_size=3,
             padding="same",
             activation=None)
-        net = tf.layers.batch_normalization(net, axis=1, training=is_training)
+        net = tf.layers.batch_normalization(net, training=is_training)
         net = tf.nn.relu(features=net)
         net = tf.layers.max_pooling2d(inputs=net, pool_size=2, strides=2)
-        net = tf.layers.dropout(net, 0.5, training=is_training)
+        # net = tf.layers.dropout(net, 0.5, training=is_training)
 
     with tf.name_scope('conv3'):
         net = tf.layers.conv2d(
             inputs=net,
             filters=64,
-            kernel_size=[5, 5],
+            kernel_size=3,
             padding="same",
             activation=None)
-        net = tf.layers.batch_normalization(net, axis=1, training=is_training)
+        net = tf.layers.batch_normalization(net, training=is_training)
         net = tf.nn.relu(features=net)
         net = tf.layers.max_pooling2d(inputs=net, pool_size=2, strides=2)
-        net = tf.layers.dropout(net, 0.5, training=is_training)
+        # net = tf.layers.dropout(net, 0.5, training=is_training)
 
 
     with tf.name_scope('conv4'):
         net = tf.layers.conv2d(
             inputs=net,
             filters=64,
-            kernel_size=[5, 5],
+            kernel_size=3,
             padding="same",
             activation=None)
-        net = tf.layers.batch_normalization(net, axis=1, training=is_training)
+        net = tf.layers.batch_normalization(net,  training=is_training)
         net = tf.nn.relu(features=net)
         net = tf.layers.max_pooling2d(inputs=net, pool_size=2, strides=2)
-        net = tf.layers.dropout(net, 0.5, training=is_training)
+        # net = tf.layers.dropout(net, 0.5, training=is_training)
 
 
 
@@ -78,39 +79,39 @@ def cnn_model_fn(features, labels, mode):
         net = tf.layers.conv2d(
             inputs=net,
             filters=64,
-            kernel_size=[5, 5],
+            kernel_size=3,
             padding="same",
             activation=None)
-        net = tf.layers.batch_normalization(net, axis=1, training=is_training)
+        net = tf.layers.batch_normalization(net, training=is_training)
         net = tf.nn.relu(features=net)
         net = tf.layers.max_pooling2d(inputs=net, pool_size=2, strides=2)
-        net = tf.layers.dropout(net, 0.5, training=is_training)
+        # net = tf.layers.dropout(net, 0.5, training=is_training)
 
 
     with tf.name_scope('conv6'):
         net = tf.layers.conv2d(
             inputs=net,
             filters=64,
-            kernel_size=[5, 5],
+            kernel_size=3,
             padding="same",
             activation=None)
-        net = tf.layers.batch_normalization(net, axis=1, training=is_training)
+        net = tf.layers.batch_normalization(net,  training=is_training)
         net = tf.nn.relu(features=net)
         net = tf.layers.max_pooling2d(inputs=net, pool_size=2, strides=2)
-        net = tf.layers.dropout(net, 0.5, training=is_training)
+        # net = tf.layers.dropout(net, 0.5, training=is_training)
 
 
-    net_flat = tf.reshape(net, [-1,2*4*64])
+    net = tf.reshape(net, [-1,2*4*64])
 
     # Dense Layer
     # Densely connected layer with 1024 neurons
     # Input Tensor Shape: [batch_size, 7 * 7 * 64]
     # Output Tensor Shape: [batch_size, 1024]
-    dense = tf.layers.dense(inputs=net_flat, units=1024, activation=tf.nn.relu)
+    # dense = tf.layers.dense(inputs=net, units=512, activation=tf.nn.relu)
 
     # Add dropout operation; 0.6 probability that element will be kept
     dropout = tf.layers.dropout(
-        inputs=dense, rate=0.4, training=mode == tf.estimator.ModeKeys.TRAIN)
+        inputs=net, rate=0.5, training=mode == tf.estimator.ModeKeys.TRAIN)
 
     # Logits layer
     # Input Tensor Shape: [batch_size, 1024]
@@ -134,7 +135,11 @@ def cnn_model_fn(features, labels, mode):
     if mode == tf.estimator.ModeKeys.TRAIN:
         update_op = tf.get_collection(tf.GraphKeys.UPDATE_OPS)
         with tf.control_dependencies(update_op):
-            optimizer = tf.train.AdagradOptimizer(learning_rate=0.001)
+            # optimizer = tf.train.MomentumOptimizer(learning_rate=1e-3,momentum=0.9)
+            optimizer = tf.train.AdamOptimizer(learning_rate=1e-4)
+            gradients, variables = zip(*optimizer.compute_gradients(loss))
+            gradients, _ = tf.clip_by_global_norm(gradients, 0.5)
+            optimize = optimizer.apply_gradients(zip(gradients, variables))
             train_op = optimizer.minimize(
                 loss=loss,
                 global_step=tf.train.get_global_step())

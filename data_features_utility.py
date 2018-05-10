@@ -455,8 +455,30 @@ class AudioPrepare():
         dataset = tf.data.TFRecordDataset(data_path)
 
         dataset = dataset.map(self.tf_record_prase_function)
-        dataset = dataset.shuffle(buffer_size=100)
-        dataset = dataset.batch(100)
+        dataset = dataset.shuffle(buffer_size=1000)
+        dataset = dataset.batch(32)
+        dataset = dataset.repeat(n_epoch)
+
+        def input_fn():
+            iterator = dataset.make_one_shot_iterator()
+            feature,label=iterator.get_next()
+            return feature,label
+
+        return input_fn
+    def tf_input_fn_maker_white(self, feature_dir_name='features_tfrecord', is_training=True, n_epoch=1):
+        data_dir = os.scandir(feature_dir_name)
+
+        if is_training:
+            data_folders = list(filter(lambda x: x.name.split('_')[1].split('.tfrecord')[0] == 'train', data_dir))
+        else:
+            data_folders = list(filter(lambda x: x.name.split('_')[1].split('.tfrecord')[0] == 'test', data_dir))
+
+        data_path = [x.path for x in data_folders]
+        dataset = tf.data.TFRecordDataset(data_path)
+
+        dataset = dataset.map(self.tf_record_prase_function)
+        dataset = dataset.shuffle(buffer_size=1000)
+        dataset = dataset.batch(64)
         dataset = dataset.repeat(n_epoch)
 
         def input_fn():
@@ -466,26 +488,6 @@ class AudioPrepare():
 
         return input_fn
 
-    # def tf_input_fn_maker_test(self, feature_dir_name='features_tfrecord', n_epoch=1):
-    #
-    #     data_path = ['features_tfrecord\\fold1_test.tfrecord', 'features_tfrecord\\fold2_test.tfrecord',
-    #                  'features_tfrecord\\fold3_test.tfrecord']
-    #     dataset = tf.data.TFRecordDataset(data_path)
-    #
-    #     dataset = dataset.map(self.tf_record_prase_function_test)
-    #     dataset = dataset.shuffle(buffer_size=100)
-    #     dataset = dataset.batch(100)
-    #     dataset = dataset.repeat(n_epoch)
-    #
-    #     def input_fn():
-    #
-    #         iterator = dataset.make_one_shot_iterator()
-    #         feature, label = iterator.get_next()
-    #         # return [feature], [label]
-    #         return feature, label
-    #         # return iterator.get_next()
-    #
-    #     return input_fn
 
 
 if __name__ == "__main__":
