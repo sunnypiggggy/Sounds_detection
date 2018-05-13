@@ -28,50 +28,50 @@ def cnn_model_fn(features, labels, mode):
         net = tf.layers.conv2d(
             inputs=input_layer,
             filters=64,
-            kernel_size=3,
+            kernel_size=5,
             padding="same",
             activation=None)
         net = tf.layers.batch_normalization(net,  training=is_training)
         net=tf.nn.relu(features=net)
         net = tf.layers.max_pooling2d(inputs=net, pool_size=2, strides=2)
-        # net=tf.layers.dropout(net,0.5,training=is_training)
+        net=tf.layers.dropout(net,0.5,training=is_training)
 
     with tf.name_scope('conv2'):
         net = tf.layers.conv2d(
             inputs=net,
             filters=64,
-            kernel_size=3,
+            kernel_size=5,
             padding="same",
             activation=None)
         net = tf.layers.batch_normalization(net, training=is_training)
         net = tf.nn.relu(features=net)
         net = tf.layers.max_pooling2d(inputs=net, pool_size=2, strides=2)
-        # net = tf.layers.dropout(net, 0.5, training=is_training)
+        net = tf.layers.dropout(net, 0.5, training=is_training)
 
     with tf.name_scope('conv3'):
         net = tf.layers.conv2d(
             inputs=net,
             filters=64,
-            kernel_size=3,
+            kernel_size=5,
             padding="same",
             activation=None)
         net = tf.layers.batch_normalization(net, training=is_training)
         net = tf.nn.relu(features=net)
         net = tf.layers.max_pooling2d(inputs=net, pool_size=2, strides=2)
-        # net = tf.layers.dropout(net, 0.5, training=is_training)
+        net = tf.layers.dropout(net, 0.5, training=is_training)
 
 
     with tf.name_scope('conv4'):
         net = tf.layers.conv2d(
             inputs=net,
             filters=64,
-            kernel_size=3,
+            kernel_size=5,
             padding="same",
             activation=None)
         net = tf.layers.batch_normalization(net,  training=is_training)
         net = tf.nn.relu(features=net)
         net = tf.layers.max_pooling2d(inputs=net, pool_size=2, strides=2)
-        # net = tf.layers.dropout(net, 0.5, training=is_training)
+        net = tf.layers.dropout(net, 0.5, training=is_training)
 
 
 
@@ -79,30 +79,30 @@ def cnn_model_fn(features, labels, mode):
         net = tf.layers.conv2d(
             inputs=net,
             filters=64,
-            kernel_size=3,
+            kernel_size=5,
             padding="same",
             activation=None)
         net = tf.layers.batch_normalization(net, training=is_training)
         net = tf.nn.relu(features=net)
         net = tf.layers.max_pooling2d(inputs=net, pool_size=2, strides=2)
-        # net = tf.layers.dropout(net, 0.5, training=is_training)
+        net = tf.layers.dropout(net, 0.5, training=is_training)
 
 
     with tf.name_scope('conv6'):
         net = tf.layers.conv2d(
             inputs=net,
             filters=64,
-            kernel_size=3,
+            kernel_size=5,
             padding="same",
             activation=None)
         net = tf.layers.batch_normalization(net,  training=is_training)
         net = tf.nn.relu(features=net)
         net = tf.layers.max_pooling2d(inputs=net, pool_size=2, strides=2)
-        # net = tf.layers.dropout(net, 0.5, training=is_training)
+        net = tf.layers.dropout(net, 0.5, training=is_training)
 
 
-    net = tf.reshape(net, [-1,2*4*64])
-
+    # net = tf.reshape(net, [-1,2*4*64])
+    net=tf.layers.flatten(net)
     # Dense Layer
     # Densely connected layer with 1024 neurons
     # Input Tensor Shape: [batch_size, 7 * 7 * 64]
@@ -167,19 +167,22 @@ def main(unused_argv):
     hook = tf_debug.TensorBoardDebugHook("sunny-workstation:7000")
 
     test_solution = data_utility.AudioPrepare()
-    train_input_fn = test_solution.tf_input_fn_maker(is_training=True, n_epoch=100)
-
-    classifier.train(
-        input_fn=train_input_fn,
-        steps=20000,
-        hooks=[logging_hook])
-
+    train_input_fn = test_solution.tf_input_fn_maker(is_training=False, n_epoch=100)
 
     # Evaluate the model and print results
     test_solution = data_utility.AudioPrepare()
-    test_input_fn = test_solution.tf_input_fn_maker(is_training=False, n_epoch=1)
-    eval_results = classifier.evaluate(input_fn=test_input_fn, steps=300)
-    print(eval_results)
+    test_input_fn = test_solution.tf_input_fn_maker(is_training=False, n_epoch=10)
+
+    for _ in range(100):
+        classifier.train(
+            input_fn=train_input_fn,
+            steps=400,
+            hooks=[logging_hook])
+
+
+
+        eval_results = classifier.evaluate(input_fn=test_input_fn, steps=300)
+        print(eval_results)
 
 if __name__ == "__main__":
     tf.app.run()

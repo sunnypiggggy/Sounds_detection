@@ -10,10 +10,8 @@ import gzip
 import soundfile as sf
 import config as cfg
 from tqdm import tqdm
+from random import shuffle
 from functools import reduce
-
-# from random import shuffle
-import random
 
 from itertools import combinations
 import tensorflow as tf
@@ -193,97 +191,97 @@ class AudioPrepare():
         angular = np.concatenate([angular, paddings], 2)
         return (mfccs, mels, angular)
 
-    # def save_feature(self, dataset_dir="DCASE2018-task5-dev", feature_dir_name='features'):
-    #     if not os.path.exists(feature_dir_name):
-    #         os.mkdir(feature_dir_name)
-    #
-    #     data_meta_dirs = os.scandir(os.path.join(dataset_dir, 'evaluation_setup'))
-    #
-    #     for meta in data_meta_dirs:
-    #         try:
-    #             with open(meta, 'r') as f_meta:
-    #                 # print(meta.name)
-    #                 for line in tqdm(f_meta.readlines()):
-    #                     # print(line.split()[0])
-    #                     path, label, sess_label = line.split()
-    #
-    #                     mfccs, mels, angular = self.feature_extract(os.path.join(*[dataset_dir, *path.split('/')]),
-    #                                                                 mfcc_bands=cfg.mfcc_bands,
-    #                                                                 mfcc_n_fft=cfg.mfcc_n_fft,
-    #                                                                 mel_spec_n_fft=cfg.mel_spec_n_fft,
-    #                                                                 angular_windowsize=cfg.angular_windowsize,
-    #                                                                 angular_n_fft=cfg.angular_n_fft,
-    #                                                                 num_TDOA=cfg.num_TDOA
-    #                                                                 )
-    #                     feature_dict = {
-    #                         'label': label,
-    #                         'session': sess_label,
-    #                         'mfcc': mfccs,
-    #                         'mel': mels,
-    #                         'angular': angular
-    #                     }
-    #                     feature_save_dir = os.path.join(feature_dir_name, meta.name.split('.txt')[0])
-    #                     if not os.path.exists(feature_save_dir):
-    #                         os.mkdir(feature_save_dir)
-    #                     with open(os.path.join(feature_save_dir, path.split('/')[1].split('.wav')[0]), 'wb') as f:
-    #                         pickle.dump(feature_dict, f)
-    #                     # with open(os.path.join(*[feature_dir_name,
-    #                     #                          meta.name.split('.txt')[0] + '-' + path.split('/')[1].split('.wav')[
-    #                     #                              0] + '-' + label]), 'wb') as f:
-    #                     #     pickle.dump(feature_dict, f)
-    #                     # print('dumping ' + os.path.join(*[feature_dir_name, meta.name.split('.txt')[0] + '-' +
-    #                     #                                   path.split('/')[1].split('.wav')[0] + '-' + label]))
-    #
-    #         except Exception as e:
-    #             print(e)
-    #
-    # def save_feature_multipross(self, dataset_dir="DCASE2018-task5-dev", feature_dir_name='features'):
-    #     if not os.path.exists(feature_dir_name):
-    #         os.mkdir(feature_dir_name)
-    #
-    #     data_meta_dirs = list(os.scandir(os.path.join(dataset_dir, 'evaluation_setup')))
-    #
-    #     pross_pool = Pool(processes=6)
-    #     for i in range(len(data_meta_dirs)):
-    #         pross_pool.apply_async(self.worker, args=(
-    #             data_meta_dirs[i].path, data_meta_dirs[i].name.split('.txt')[0], dataset_dir, feature_dir_name))
-    #
-    #     pross_pool.close()
-    #     pross_pool.join()
-    #     print('main pross end')
-    #
-    # def worker(self, meta, fold_dir_name, dataset_dir, feature_dir_name):
-    #     print('start process {0}'.format(meta))
-    #     with open(meta, 'r') as f_meta:
-    #         feature_save_dir = os.path.join(feature_dir_name, fold_dir_name)
-    #         # print(feature_save_dir)
-    #         if not os.path.exists(feature_save_dir):
-    #             os.mkdir(feature_save_dir)
-    #         for line in tqdm(f_meta.readlines(), desc=fold_dir_name):
-    #             path, label, sess_label = line.split()
-    #             mfcc, mel, angular = self.feature_extract(os.path.join(*[dataset_dir, *path.split('/')]),
-    #                                                       mfcc_bands=cfg.mfcc_bands,
-    #                                                       mfcc_n_fft=cfg.mfcc_n_fft,
-    #                                                       mel_spec_n_fft=cfg.mel_spec_n_fft,
-    #                                                       angular_windowsize=cfg.angular_windowsize,
-    #                                                       angular_n_fft=cfg.angular_n_fft,
-    #                                                       num_TDOA=cfg.num_TDOA
-    #                                                       )
-    #             # feature_dict = {
-    #             #     'label': label,
-    #             #     'session': sess_label,
-    #             #     'mfcc': mfccs,
-    #             #     'mel': mels,
-    #             #     'angular': angular
-    #             # }
-    #             #
-    #             # with gzip.open(os.path.join(feature_save_dir, path.split('/')[1].split('.wav')[0]) + '.gz', 'wb') as f:
-    #             #     pickle.dump(feature_dict, f)
-    #
-    #             np.savez_compressed(os.path.join(feature_save_dir, path.split('/')[1].split('.wav')[0]), mfcc=mfcc,
-    #                                 mel=mel, angular=angular)
-    #
-    #     print('process {0} done'.format(meta))
+    def save_feature(self, dataset_dir="DCASE2018-task5-dev", feature_dir_name='features'):
+        if not os.path.exists(feature_dir_name):
+            os.mkdir(feature_dir_name)
+
+        data_meta_dirs = os.scandir(os.path.join(dataset_dir, 'evaluation_setup'))
+
+        for meta in data_meta_dirs:
+            try:
+                with open(meta, 'r') as f_meta:
+                    # print(meta.name)
+                    for line in tqdm(f_meta.readlines()):
+                        # print(line.split()[0])
+                        path, label, sess_label = line.split()
+
+                        mfccs, mels, angular = self.feature_extract(os.path.join(*[dataset_dir, *path.split('/')]),
+                                                                    mfcc_bands=cfg.mfcc_bands,
+                                                                    mfcc_n_fft=cfg.mfcc_n_fft,
+                                                                    mel_spec_n_fft=cfg.mel_spec_n_fft,
+                                                                    angular_windowsize=cfg.angular_windowsize,
+                                                                    angular_n_fft=cfg.angular_n_fft,
+                                                                    num_TDOA=cfg.num_TDOA
+                                                                    )
+                        feature_dict = {
+                            'label': label,
+                            'session': sess_label,
+                            'mfcc': mfccs,
+                            'mel': mels,
+                            'angular': angular
+                        }
+                        feature_save_dir = os.path.join(feature_dir_name, meta.name.split('.txt')[0])
+                        if not os.path.exists(feature_save_dir):
+                            os.mkdir(feature_save_dir)
+                        with open(os.path.join(feature_save_dir, path.split('/')[1].split('.wav')[0]), 'wb') as f:
+                            pickle.dump(feature_dict, f)
+                        # with open(os.path.join(*[feature_dir_name,
+                        #                          meta.name.split('.txt')[0] + '-' + path.split('/')[1].split('.wav')[
+                        #                              0] + '-' + label]), 'wb') as f:
+                        #     pickle.dump(feature_dict, f)
+                        # print('dumping ' + os.path.join(*[feature_dir_name, meta.name.split('.txt')[0] + '-' +
+                        #                                   path.split('/')[1].split('.wav')[0] + '-' + label]))
+
+            except Exception as e:
+                print(e)
+
+    def save_feature_multipross(self, dataset_dir="DCASE2018-task5-dev", feature_dir_name='features'):
+        if not os.path.exists(feature_dir_name):
+            os.mkdir(feature_dir_name)
+
+        data_meta_dirs = list(os.scandir(os.path.join(dataset_dir, 'evaluation_setup')))
+
+        pross_pool = Pool(processes=6)
+        for i in range(len(data_meta_dirs)):
+            pross_pool.apply_async(self.worker, args=(
+                data_meta_dirs[i].path, data_meta_dirs[i].name.split('.txt')[0], dataset_dir, feature_dir_name))
+
+        pross_pool.close()
+        pross_pool.join()
+        print('main pross end')
+
+    def worker(self, meta, fold_dir_name, dataset_dir, feature_dir_name):
+        print('start process {0}'.format(meta))
+        with open(meta, 'r') as f_meta:
+            feature_save_dir = os.path.join(feature_dir_name, fold_dir_name)
+            # print(feature_save_dir)
+            if not os.path.exists(feature_save_dir):
+                os.mkdir(feature_save_dir)
+            for line in tqdm(f_meta.readlines(), desc=fold_dir_name):
+                path, label, sess_label = line.split()
+                mfcc, mel, angular = self.feature_extract(os.path.join(*[dataset_dir, *path.split('/')]),
+                                                          mfcc_bands=cfg.mfcc_bands,
+                                                          mfcc_n_fft=cfg.mfcc_n_fft,
+                                                          mel_spec_n_fft=cfg.mel_spec_n_fft,
+                                                          angular_windowsize=cfg.angular_windowsize,
+                                                          angular_n_fft=cfg.angular_n_fft,
+                                                          num_TDOA=cfg.num_TDOA
+                                                          )
+                # feature_dict = {
+                #     'label': label,
+                #     'session': sess_label,
+                #     'mfcc': mfccs,
+                #     'mel': mels,
+                #     'angular': angular
+                # }
+                #
+                # with gzip.open(os.path.join(feature_save_dir, path.split('/')[1].split('.wav')[0]) + '.gz', 'wb') as f:
+                #     pickle.dump(feature_dict, f)
+
+                np.savez_compressed(os.path.join(feature_save_dir, path.split('/')[1].split('.wav')[0]), mfcc=mfcc,
+                                    mel=mel, angular=angular)
+
+        print('process {0} done'.format(meta))
 
     def int64_feature(self, value):
         return tf.train.Feature(int64_list=tf.train.Int64List(value=[value]))
@@ -298,103 +296,25 @@ class AudioPrepare():
         for i in range(0, len(listx), size):
             yield listx[i:i + size]
 
-    # def save_feature_TFrecord(self, dataset_dir="DCASE2018-task5-dev", feature_dir_name='features_tfrecord'):
-    #     if not os.path.exists(feature_dir_name):
-    #         os.mkdir(feature_dir_name)
-    #
-    #     data_meta_dirs = list(os.scandir(os.path.join(dataset_dir, 'evaluation_setup')))
-    #
-    #     for meta in data_meta_dirs:
-    #         # try:
-    #         with open(meta, 'r') as f_meta:
-    #             # print(meta.name)
-    #             f_meta.seek(0)
-    #             meta_lines = f_meta.readlines()
-    #             random.shuffle(meta_lines)
-    #
-    #             meta_chunk = list(self.split_chunks(meta_lines, 1000))
-    #
-    #             with tf.python_io.TFRecordWriter(
-    #                     os.path.join(feature_dir_name, meta.name.split('.txt')[0]) + '.tfrecord') as writer:
-    #                 # print('processing {0}'.format(meta.name.split('.txt')[0]))
-    #
-    #                 for chunk in tqdm(meta_chunk):
-    #                     # print("\n" + line.split()[0])
-    #                     for line in chunk:
-    #                         path, label, sess_label = line.split()
-    #                         mfcc, mel, angular = self.feature_extract(os.path.join(*[dataset_dir, *path.split('/')]),
-    #                                                                   mfcc_bands=cfg.mfcc_bands,
-    #                                                                   mfcc_n_fft=cfg.mfcc_n_fft,
-    #                                                                   mel_spec_n_fft=cfg.mel_spec_n_fft,
-    #                                                                   angular_windowsize=cfg.angular_windowsize,
-    #                                                                   angular_n_fft=cfg.angular_n_fft,
-    #                                                                   num_TDOA=cfg.num_TDOA
-    #                                                                   )
-    #
-    #                         features = {
-    #                             'label': self.int64_feature(cfg.class_name2index[label]),
-    #                             'session': self.bytes_feature(bytes(sess_label, encoding='utf-8')),
-    #                             'mfcc': tf.train.Feature(float_list=tf.train.FloatList(value=mfcc.flatten().tolist())),
-    #                             'mfcc_shape': tf.train.Feature(int64_list=tf.train.Int64List(value=list(mfcc.shape))),
-    #                             'mel': tf.train.Feature(float_list=tf.train.FloatList(value=mel.flatten().tolist())),
-    #                             'mel_shape': tf.train.Feature(int64_list=tf.train.Int64List(value=list(mel.shape))),
-    #                             'angular': tf.train.Feature(
-    #                                 float_list=tf.train.FloatList(value=angular.flatten().tolist())),
-    #                             'angular_shape': tf.train.Feature(
-    #                                 int64_list=tf.train.Int64List(value=list(angular.shape))),
-    #
-    #                         }
-    #                         example = tf.train.Example(features=tf.train.Features(feature=features))
-    #                         serialized = example.SerializeToString()
-    #                         writer.write(serialized)
-    #
-    # # except Exception as e:
-    # #     print(e)
-
-
-    def save_feature_TFrecord_mutipross(self, dataset_dir="DCASE2018-task5-dev", feature_dir_name='features_tfrecord',
-                                        train_sets=True):
+    def save_feature_TFrecord(self, dataset_dir="DCASE2018-task5-dev", feature_dir_name='features_tfrecord'):
         if not os.path.exists(feature_dir_name):
             os.mkdir(feature_dir_name)
 
+        data_meta_dirs = os.scandir(os.path.join(dataset_dir, 'evaluation_setup'))
 
-        data_meta_dirs = list(os.scandir(os.path.join(dataset_dir, 'evaluation_setup')))
-        if train_sets == True:
-            data_meta_dirs=filter(lambda x:x.name.split('_')[1].split('.txt')[0]=='train',data_meta_dirs)
-        else:
-            data_meta_dirs = filter(lambda x: x.name.split('_')[1].split('.txt')[0] == 'test', data_meta_dirs)
-
-        data_meta_dirs=list(data_meta_dirs)
-        # self.tfrecord_worker(data_meta_dirs[0].path,data_meta_dirs[0].name.split('.txt')[0],dataset_dir, feature_dir_name)
-
-        pross_pool = Pool()
-        for i in range(len(data_meta_dirs)):
-            pross_pool.apply_async(self.tfrecord_worker, args=(
-                data_meta_dirs[i].path, data_meta_dirs[i].name.split('.txt')[0], dataset_dir, feature_dir_name))
-
-        pross_pool.close()
-        pross_pool.join()
-        print('main pross end')
-
-
-    def tfrecord_worker(self, meta, fold_name, dataset_dir, feature_dir_name):
-        print('start  process {0} TFrecord'.format(meta))
-
-        with open(meta, 'r') as f_meta:
-            if not os.path.exists(os.path.join(feature_dir_name, fold_name)):
-                os.mkdir(os.path.join(feature_dir_name, fold_name))
-
-
+        for meta in data_meta_dirs:
+            # try:
             with open(meta, 'r') as f_meta:
-                f_meta.seek(0)
-                meta_lines = f_meta.readlines()
-                random.shuffle(meta_lines)
-                meta_chunk = list(self.split_chunks(meta_lines, 1000))
+                # print(meta.name)
+                # meta_lines=f_meta.readlines()
+                # meta_lines=shuffle(meta_lines)
+                # meta_chunk = list(self.split_chunks(meta_lines, 200))
 
-
-            for i in range(len(meta_chunk)) :
-                with tf.python_io.TFRecordWriter(os.path.join(feature_dir_name, fold_name,str(i) + '.tfrecord')) as writer:
-                    for line in tqdm(meta_chunk[i],desc='\n'+fold_name+' chunck '+str(i)):
+                with tf.python_io.TFRecordWriter(
+                        os.path.join(feature_dir_name, meta.name.split('.txt')[0]) + '.tfrecord') as writer:
+                    # print('processing {0}'.format(meta.name.split('.txt')[0]))
+                    for line in tqdm(f_meta.readlines()):
+                        # print("\n" + line.split()[0])
                         path, label, sess_label = line.split()
                         mfcc, mel, angular = self.feature_extract(os.path.join(*[dataset_dir, *path.split('/')]),
                                                                   mfcc_bands=cfg.mfcc_bands,
@@ -404,6 +324,7 @@ class AudioPrepare():
                                                                   angular_n_fft=cfg.angular_n_fft,
                                                                   num_TDOA=cfg.num_TDOA
                                                                   )
+
                         features = {
                             'label': self.int64_feature(cfg.class_name2index[label]),
                             'session': self.bytes_feature(bytes(sess_label, encoding='utf-8')),
@@ -420,7 +341,86 @@ class AudioPrepare():
                         serialized = example.SerializeToString()
                         writer.write(serialized)
 
+        # except Exception as e:
+        #     print(e)
+
+    def save_feature_TFrecord_mutipross(self, dataset_dir="DCASE2018-task5-dev", feature_dir_name='features_tfrecord',trainsets=True):
+        if not os.path.exists(feature_dir_name):
+            os.mkdir(feature_dir_name)
+
+        data_meta_dirs = list(os.scandir(os.path.join(dataset_dir, 'evaluation_setup')))
+
+        pross_pool = Pool(processes=6)
+        for i in range(len(data_meta_dirs)):
+            pross_pool.apply_async(self.tfrecord_worker, args=(
+                data_meta_dirs[i].path, data_meta_dirs[i].name.split('.txt')[0], dataset_dir, feature_dir_name))
+
+        pross_pool.close()
+        pross_pool.join()
+        print('main pross end')
+
+    def tfrecord_worker(self, meta, fold_name, dataset_dir, feature_dir_name):
+        print('start  process {0} TFrecord'.format(meta))
+
+        with open(meta, 'r') as f_meta:
+            with tf.python_io.TFRecordWriter(os.path.join(feature_dir_name, fold_name + '.tfrecord')) as writer:
+                for line in tqdm(f_meta.readlines(), desc=fold_name):
+                    path, label, sess_label = line.split()
+                    mfcc, mel, angular = self.feature_extract(os.path.join(*[dataset_dir, *path.split('/')]),
+                                                              mfcc_bands=cfg.mfcc_bands,
+                                                              mfcc_n_fft=cfg.mfcc_n_fft,
+                                                              mel_spec_n_fft=cfg.mel_spec_n_fft,
+                                                              angular_windowsize=cfg.angular_windowsize,
+                                                              angular_n_fft=cfg.angular_n_fft,
+                                                              num_TDOA=cfg.num_TDOA
+                                                              )
+                    features = {
+                        'label': self.int64_feature(cfg.class_name2index[label]),
+                        'session': self.bytes_feature(bytes(sess_label, encoding='utf-8')),
+                        'mfcc': tf.train.Feature(float_list=tf.train.FloatList(value=mfcc.flatten().tolist())),
+                        'mfcc_shape': tf.train.Feature(int64_list=tf.train.Int64List(value=list(mfcc.shape))),
+                        'mel': tf.train.Feature(float_list=tf.train.FloatList(value=mel.flatten().tolist())),
+                        'mel_shape': tf.train.Feature(int64_list=tf.train.Int64List(value=list(mel.shape))),
+                        'angular': tf.train.Feature(
+                            float_list=tf.train.FloatList(value=angular.flatten().tolist())),
+                        'angular_shape': tf.train.Feature(int64_list=tf.train.Int64List(value=list(angular.shape))),
+
+                    }
+                    example = tf.train.Example(features=tf.train.Features(feature=features))
+                    serialized = example.SerializeToString()
+                    writer.write(serialized)
+
+    # def tf_record_prase_function(self, example_proto):
+    #
+    #     features = {
+    #         'label': tf.FixedLenFeature(shape=(), dtype=tf.int64),
+    #         'session': tf.FixedLenFeature(shape=(), dtype=tf.string),
+    #         'mfcc': tf.VarLenFeature(dtype=tf.float32),
+    #         'mfcc_shape': tf.FixedLenFeature(shape=(3,), dtype=tf.int64),
+    #         'mel': tf.VarLenFeature(dtype=tf.float32),
+    #         'mel_shape': tf.FixedLenFeature(shape=(3,), dtype=tf.int64),
+    #         'angular': tf.VarLenFeature(dtype=tf.float32),
+    #         'angular_shape': tf.FixedLenFeature(shape=(3,), dtype=tf.int64)
+    #     }
+    #     parsed_features = tf.parse_single_example(
+    #         example_proto,
+    #         features=features
+    #     )
+    #     parsed_features['mfcc'] = tf.sparse_tensor_to_dense(parsed_features['mfcc'])
+    #     parsed_features['mfcc'] = tf.reshape(parsed_features['mfcc'], parsed_features['mfcc_shape'])
+    #     parsed_features['mfcc'] = tf.transpose(parsed_features['mfcc'], [1, 2, 0])
+    #
+    #     parsed_features['mel'] = tf.sparse_tensor_to_dense(parsed_features['mel'])
+    #     parsed_features['mel'] = tf.reshape(parsed_features['mel'], parsed_features['mel_shape'])
+    #     parsed_features['mel'] = tf.transpose(parsed_features['mel'], [1, 2, 0])
+    #
+    #     parsed_features['angular'] = tf.sparse_tensor_to_dense(parsed_features['angular'])
+    #     parsed_features['angular'] = tf.reshape(parsed_features['angular'], parsed_features['angular_shape'])
+    #     parsed_features['angular'] = tf.transpose(parsed_features['angular'], [1, 2, 0])
+    #     return parsed_features,parsed_features['label']
+
     def tf_record_prase_function(self, example_proto):
+
         features = {
             'label': tf.FixedLenFeature(shape=(), dtype=tf.int64),
             'session': tf.FixedLenFeature(shape=(), dtype=tf.string),
@@ -435,7 +435,7 @@ class AudioPrepare():
             example_proto,
             features=features
         )
-        mfcc = tf.sparse_tensor_to_dense(parsed_features['mfcc'])
+        mfcc= tf.sparse_tensor_to_dense(parsed_features['mfcc'])
         mfcc = tf.reshape(mfcc, parsed_features['mfcc_shape'])
         mfcc = tf.transpose(mfcc, [1, 2, 0])
 
@@ -443,43 +443,16 @@ class AudioPrepare():
         mel = tf.reshape(mel, parsed_features['mel_shape'])
         mel = tf.transpose(mel, [1, 2, 0])
 
-        angular = tf.sparse_tensor_to_dense(parsed_features['angular'])
+        angular= tf.sparse_tensor_to_dense(parsed_features['angular'])
         angular = tf.reshape(angular, parsed_features['angular_shape'])
         angular = tf.transpose(angular, [1, 2, 0])
 
-        label = tf.cast(parsed_features['label'], tf.int32)
+        label=tf.cast(parsed_features['label'],tf.int32)
         # return {'mfcc': mfcc, 'mel': mel, 'angular': angular,'label':label}
 
-        return {'mfcc': mfcc, 'mel': mel, 'angular': angular}, label
-
+        return {'mfcc': mfcc, 'mel': mel, 'angular': angular},label
 
     def tf_input_fn_maker(self, feature_dir_name='features_tfrecord', is_training=True, n_epoch=1):
-        data_dir = os.scandir(feature_dir_name)
-
-        if is_training:
-            data_folders = list(filter(lambda x: x.name.split('_')[1] == 'train', data_dir))
-        else:
-            data_folders = list(filter(lambda x: x.name.split('_')[1] == 'test', data_dir))
-
-        data_folders = [list(os.scandir(x))for x in data_folders]
-        data_path=reduce(lambda x,y:x+y,data_folders)
-        data_path=[x.path for x in data_path]
-        dataset = tf.data.TFRecordDataset(data_path)
-
-        dataset = dataset.map(self.tf_record_prase_function)
-        dataset = dataset.shuffle(buffer_size=1001)
-        dataset = dataset.batch(32)
-        dataset = dataset.repeat(n_epoch)
-
-        def input_fn():
-            iterator = dataset.make_one_shot_iterator()
-            feature, label = iterator.get_next()
-            return feature, label
-
-        return input_fn
-
-
-    def tf_input_fn_maker_debug(self, feature_dir_name='features_tfrecord', is_training=True, n_epoch=1):
         data_dir = os.scandir(feature_dir_name)
 
         if is_training:
@@ -491,16 +464,39 @@ class AudioPrepare():
         dataset = tf.data.TFRecordDataset(data_path)
 
         dataset = dataset.map(self.tf_record_prase_function)
-        dataset = dataset.shuffle(buffer_size=10000)
-        dataset = dataset.batch(1000)
+        dataset = dataset.shuffle(buffer_size=1000)
+        dataset = dataset.batch(32)
         dataset = dataset.repeat(n_epoch)
 
         def input_fn():
             iterator = dataset.make_one_shot_iterator()
-            feature, label = iterator.get_next()
-            return feature, label
+            feature,label=iterator.get_next()
+            return feature,label
 
         return input_fn
+    def tf_input_fn_maker_white(self, feature_dir_name='features_tfrecord', is_training=True, n_epoch=1):
+        data_dir = os.scandir(feature_dir_name)
+
+        if is_training:
+            data_folders = list(filter(lambda x: x.name.split('_')[1].split('.tfrecord')[0] == 'train', data_dir))
+        else:
+            data_folders = list(filter(lambda x: x.name.split('_')[1].split('.tfrecord')[0] == 'test', data_dir))
+
+        data_path = [x.path for x in data_folders]
+        dataset = tf.data.TFRecordDataset(data_path)
+
+        dataset = dataset.map(self.tf_record_prase_function)
+        dataset = dataset.shuffle(buffer_size=1000)
+        dataset = dataset.batch(64)
+        dataset = dataset.repeat(n_epoch)
+
+        def input_fn():
+            iterator = dataset.make_one_shot_iterator()
+            feature,label=iterator.get_next()
+            return feature,label
+
+        return input_fn
+
 
 
 if __name__ == "__main__":
@@ -509,29 +505,25 @@ if __name__ == "__main__":
     # test_solution.tf_feature_dataset()
     # test_solution.save_feature()
 
-    # test_solution.read_feature_TFrecord_test()
 
-    # test_solution.save_feature_TFrecord()
 
-    test_solution.save_feature_TFrecord_mutipross()
+    test_solution.save_feature_TFrecord()
+
+    # test_solution.save_feature_TFrecord_mutipross()
     # dataset=test_solution.tf_get_dataset(is_training=False)
 
     # train_iput_fn = test_solution.tf_input_fn_maker(dataset)
 
     # sess = tf.InteractiveSession()
     # while True:
-    #     # for _ in range(10):
     #     # input_fn = test_solution.tf_input_fn_maker_test()
-    #     input_fn = test_solution.tf_input_fn_maker()
-    #     X, Y = input_fn()
+    #     input_fn,label_fn=test_solution.tf_input_fn_maker()
+    #     X= input_fn()
+    #     Y=label_fn()
     #     try:
-    #         with open(".\data_labels.txt", 'w') as f:
-    #             tt = sess.run(Y)
-    #             print(tt)
-    #             f.write(str(tt) + '\n')
-    #         # feature ,label= sess.run([X,Y])
-    #         # rosa_display.specshow(feature['mel'][0, :, :, 0])
-    #         # plt.show()
+    #         feature ,label= sess.run([input_fn,label_fn])
+    #         rosa_display.specshow(feature['mel'][0, :, :, 0])
+    #         plt.show()
     #         # label = sess.run(next_element['label'])
     #         # mfcc= sess.run(next_element['mfcc'])
     #         # print(mfcc)

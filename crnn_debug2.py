@@ -4,30 +4,46 @@ import scipy as sci
 import config as cfg
 import data_features_utility as data_utility
 
+def weightVar(shape, mean=0.0, stddev=0.02, name='weights'):
+    init_w = tf.truncated_normal(shape=shape, mean=mean, stddev=stddev)
+    return tf.Variable(init_w, name=name)
+
+
+def biasVar(shape, value=0.0, name='bias'):
+    init_b = tf.constant(value=value, shape=shape)
+    return tf.Variable(init_b, name=name)
+
+
+def conv2d(input, filter, strides=[1, 1, 1, 1], padding='SAME', name=None):
+    return tf.nn.conv2d(input, filter, strides=strides, padding=padding, name=name)
 
 def conv_layers(input, is_training, pooling_config=None, name=None, use_bn=True, use_dropout=True):
     if pooling_config == None:
         pooling_config = [2, 2, 2]
 
     with tf.variable_scope('conv1_' + name):
+
         net = tf.layers.conv2d(
             input,
             filters=64,
             kernel_size=5,
             padding='same',
-            activation=None)
+            activation=tf.nn.relu)
+        #[filter_height, filter_width, in_channels, out_channels]
+        W=weightVar([5,5,4,64])
+        b=biasVar([64])
+        net=tf.nn.conv2d(
+            input,
+            filter=W,
+        )
+
+
         if use_bn == True:
             net = tf.layers.batch_normalization(net,training=is_training)
         net = tf.nn.relu(features=net)
         net = tf.layers.max_pooling2d(net, pool_size=[5,2], strides=(pooling_config[0], 2), padding='same')
         if use_dropout == True:
             pool1 = tf.layers.dropout(net, rate=0.5, training=is_training)
-        weight=[var for var in tf.global_variables() if var.name=='conv1_mel/conv2d/kernel:0']
-        tf.summary.histogram('conv1_kernel',weight)
-        # tf.summary.tensor_summary('conv1_kernel',weight)
-        bias=[var for var in tf.global_variables() if var.name=='conv1_mel/conv2d/bias:0']
-        tf.summary.histogram('conv1_bise', bias)
-        # tf.summary.tensor_summary('conv1_bise', bias)
 
     with tf.variable_scope('conv2_' + name):
         net = tf.layers.conv2d(
@@ -63,92 +79,8 @@ def conv_layers(input, is_training, pooling_config=None, name=None, use_bn=True,
                             name='reshaped')  # [batch,width,heigth*features]
     return output
 
-#
-# def conv_layers2(input, is_training, pooling_config=None, name=None, use_bn=True, use_dropout=True):
-#     if pooling_config == None:
-#         pooling_config = [2, 2, 2]
-#
-#     with tf.variable_scope('conv1_' + name):
-#
-#         net = tf.layers.conv2d(
-#             input,
-#             filters=32,
-#             kernel_size=3,
-#             padding='same',
-#             activation=None)
-#         if use_bn == True:
-#             net = tf.layers.batch_normalization(net, axis=1, training=is_training)
-#         net = tf.nn.relu(net)
-#         net = tf.layers.max_pooling2d(net, pool_size=2, strides=(pooling_config[0], 2), padding='valid')
-#         if use_dropout == True:
-#             pool1 = tf.layers.dropout(net, rate=0.5, training=is_training)
-#
-#     with tf.variable_scope('conv2_' + name):
-#         net = tf.layers.conv2d(
-#             pool1,
-#             filters=32,
-#             kernel_size=3,
-#             padding='same',
-#             activation=None)
-#         if use_bn == True:
-#             net = tf.layers.batch_normalization(net, training=is_training)
-#         net = tf.nn.relu(net)
-#         pool2 = tf.layers.max_pooling2d(net, pool_size=2, strides=(pooling_config[1], 2), padding='valid')
-#         if use_dropout == True:
-#             pool2 = tf.layers.dropout(pool2, rate=0.5, training=is_training)
-#
-#     with tf.variable_scope('conv3_' + name):
-#         net = tf.layers.conv2d(
-#             pool2,
-#             filters=32,
-#             kernel_size=3,
-#             activation=None)
-#         if use_bn == True:
-#             net = tf.layers.batch_normalization(net, training=is_training)
-#         net = tf.nn.relu(net)
-#         pool3 = tf.layers.max_pooling2d(net, pool_size=2, strides=(pooling_config[2], 2), padding='valid')
-#         if use_dropout == True:
-#             pool3 = tf.layers.dropout(pool3, rate=0.5, training=is_training)
-#
-#     with tf.variable_scope('Reshape_cnn_' + name):
-#         output_shape = pool3.get_shape().as_list()  # [batch,height,width,features]
-#         output = tf.transpose(pool3, [0, 2, 1, 3], name='transposed')
-#         output = tf.reshape(output, shape=[-1, output_shape[2], output_shape[1] * output_shape[3]],
-#                             name='reshaped')  # [batch,width,heigth*features]
-#     return output
-#
-#
-# def conv_layers3(input, is_training, name=None):
-#     with tf.name_scope('conv1'):
-#         net = tf.layers.conv2d(
-#             inputs=input,
-#             filters=32,
-#             kernel_size=[5, 5],
-#             padding="same",
-#             activation=None)
-#         net = tf.layers.batch_normalization(net ,training=is_training)
-#         net = tf.nn.relu(features=net)
-#         net = tf.layers.max_pooling2d(inputs=net, pool_size=5, strides=5)
-#         net = tf.layers.dropout(net, 0.2, training=is_training)
-#
-#     with tf.name_scope('conv2'):
-#         net = tf.layers.conv2d(
-#             inputs=net,
-#             filters=64,
-#             kernel_size=[5, 5],
-#             padding="same",
-#             activation=None)
-#         net = tf.layers.batch_normalization(net ,training=is_training)
-#         net = tf.nn.relu(features=net)
-#         net = tf.layers.max_pooling2d(inputs=net, pool_size=2, strides=2)
-#         net = tf.layers.dropout(net, 0.2, training=is_training)
-#
-#     with tf.variable_scope('Reshape_cnn_' + name):
-#         output_shape = net.get_shape().as_list()  # [batch,height,width,features]
-#         output = tf.transpose(net, [0, 2, 1, 3], name='transposed')
-#         output = tf.reshape(output, shape=[-1, output_shape[2], output_shape[1] * output_shape[3]],
-#                             name='reshaped')  # [batch,width,heigth*features]
-#     return output
+
+
 
 
 def model_fn(features, labels, mode):
