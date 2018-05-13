@@ -24,6 +24,7 @@ def cnn_model_fn(features, labels, mode):
             inputs=input_layer,
             filters=64,
             kernel_size=[5, 5],
+            kernel_initializer=tf.truncated_normal_initializer(stddev=0.02),
             padding="same",
             activation=None)
         net = tf.layers.batch_normalization(net, axis=1, training=is_training)
@@ -45,6 +46,7 @@ def cnn_model_fn(features, labels, mode):
             inputs=net,
             filters=128,
             kernel_size=[5, 5],
+            kernel_initializer=tf.truncated_normal_initializer(stddev=0.02),
             padding="same",
             activation=None)
         net = tf.layers.batch_normalization(net, axis=1, training=is_training)
@@ -64,6 +66,7 @@ def cnn_model_fn(features, labels, mode):
             inputs=net,
             filters=256,
             kernel_size=[5, 5],
+            kernel_initializer=tf.truncated_normal_initializer(stddev=0.02),
             padding="same",
             activation=None)
         net = tf.layers.batch_normalization(net, axis=1, training=is_training)
@@ -84,6 +87,7 @@ def cnn_model_fn(features, labels, mode):
             inputs=net,
             filters=512,
             kernel_size=[5, 5],
+            kernel_initializer=tf.truncated_normal_initializer(stddev=0.02),
             padding="same",
             activation=None)
         net = tf.layers.batch_normalization(net, axis=1, training=is_training)
@@ -190,15 +194,15 @@ def main(unused_argv):
     test_input_fn = test_solution.tf_input_fn_maker(is_training=False, n_epoch=1)
 
     # for _ in range(100):
-    classifier.train(
-        input_fn=train_input_fn,
-        steps=1000,
-        hooks=[logging_hook])
+    # classifier.train(
+    #     input_fn=train_input_fn,
+    #     steps=4000,
+    #     hooks=[logging_hook])
     #
     #     eval_results = classifier.evaluate(input_fn=test_input_fn, steps=100)
     #     print(eval_results)
-    # eval_results = classifier.evaluate(input_fn=test_input_fn, steps=20000)
-    # print(eval_results)
+    eval_results = classifier.evaluate(input_fn=test_input_fn, steps=2000)
+    print(eval_results)
 
 if __name__ == "__main__":
     tf.app.run()
