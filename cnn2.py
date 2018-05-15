@@ -188,7 +188,7 @@ def main(unused_argv):
     hook = tf_debug.TensorBoardDebugHook("sunny-workstation:7000")
 
     test_solution = data_utility.AudioPrepare()
-    train_input_fn = test_solution.tf_input_fn_maker(is_training=True, n_epoch=100)
+    # train_input_fn = test_solution.tf_input_fn_maker(is_training=True, n_epoch=100)
     # Evaluate the model and print results
     test_solution = data_utility.AudioPrepare()
     test_input_fn = test_solution.tf_input_fn_maker(is_training=False, n_epoch=1)
@@ -201,7 +201,7 @@ def main(unused_argv):
     #
     #     eval_results = classifier.evaluate(input_fn=test_input_fn, steps=100)
     #     print(eval_results)
-    eval_results = classifier.evaluate(input_fn=test_input_fn, steps=2000)
+    eval_results = classifier.evaluate(input_fn=test_input_fn, steps=8000)
     print(eval_results)
 
 if __name__ == "__main__":

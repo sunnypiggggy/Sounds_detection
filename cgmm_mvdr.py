@@ -1,10 +1,13 @@
 import soundfile as sf
 import librosa
+import librosa.display as rdis
 import numpy as np
 import math
 import os
+import matplotlib.pylab as plt
 
 LOG_PI = math.log(math.pi)
+
 
 def gmm_posterior(obs, phi, sigma_inv, sigma_det):
     """
@@ -24,12 +27,6 @@ def gmm_posterior(obs, phi, sigma_inv, sigma_det):
     post = np.complex(-0.5 * (LOG_PI * dim + np.log(sigma_det * (phi ** dim)) + comp_e))
     return post
 
-def gmm_posterior_slow(obs, sigma):
-    dim = obs.size
-    obs = np.matrix(obs)
-    comp_e = obs * sigma.I * obs.T
-    post = np.complex(-0.5 * (LOG_PI * dim + np.log(np.linalg.det(sigma)) + comp_e))
-    return post
 
 class CGMM(object):
     def __init__(self, num_bins, time_steps, num_channels):
@@ -70,15 +67,6 @@ class CGMM(object):
         num_bins, time_steps, num_channels = inputs.shape
         assert num_bins == self.num_bins and time_steps == self.time_steps \
                and num_channels == self.dim, 'Inputs dim does not match CGMM config'
-
-    # def log_likelihood(self, spectrums):
-    #     self.check_inputs(spectrums)
-    #     posteriors = 0.0
-    #     for f in range(self.num_bins):
-    #         for t in range(self.time_steps):
-    #             posteriors += self.lambda_[f, t] * gmm_posterior(spectrums[f, t], \
-    #                     self.phi[f, t], self.sigma_inv[f], self.sigma_det[f])
-    #     return posteriors
 
     def accu_stats(self, spectrums):
         """
@@ -148,25 +136,13 @@ class CGMM(object):
         self.update_phi(covar)
         self.update_sigma(covar)
 
+
 class CGMM_MVDR():
-    def __init__(self,num_bins, time_steps, num_channels):
+    def __init__(self, num_bins, time_steps, num_channels):
         self.noise_part = CGMM(num_bins, time_steps, num_channels)
         self.noisy_part = CGMM(num_bins, time_steps, num_channels)
-        self.num_bins   = num_bins
+        self.num_bins = num_bins
         self.time_steps = time_steps
-
-    def read_wav(self, audio_path):
-        '''
-
-        :param audio_path:
-        :return:
-        audio_data,sampleRate
-        '''
-        audio_data, sampleRate = sf.read(audio_path)
-        # print('audio :{0}'.format(audio_path))
-        # print('sample rate :{0}'.format(sampleRate))
-        # print('shape: {0}'.format(audio_data.shape))
-        return audio_data, sampleRate
 
     def init_sigma(self, spectrums):
         """
@@ -176,11 +152,11 @@ class CGMM_MVDR():
         print("initialize sigma...")
         num_bins, time_steps, num_channels = spectrums.shape
         self.covar = [y.H * y for y in [np.matrix(spectrums[f, t]) \
-                for f in range(num_bins) for t in range(time_steps)]]
+                                        for f in range(num_bins) for t in range(time_steps)]]
         self.noise_part.init_sigma([np.matrix(np.eye(num_channels, \
-                num_channels).astype(np.complex)) for f in range(num_bins)])
+                                                     num_channels).astype(np.complex)) for f in range(num_bins)])
         self.noisy_part.init_sigma([sum(self.covar[f * time_steps: \
-              (f + 1) * time_steps]) / time_steps for f in range(num_bins)])
+                                                   (f + 1) * time_steps]) / time_steps for f in range(num_bins)])
 
     def accu_stats(self, spectrums):
         print('accumulate statstics...')
@@ -215,18 +191,93 @@ class CGMM_MVDR():
             print('epoch {0:2d}: Likelihood = ({1.real:.5f}, {1.imag:.5f}i)'.format(it, likelihood))
 
 
+def read_wav(audio_path):
+    '''
+
+    :param audio_path:
+    :return:
+    audio_data,sampleRate
+    '''
+    audio_data, sampleRate = sf.read(audio_path)
+    # print('audio :{0}'.format(audio_path))
+    # print('sample rate :{0}'.format(sampleRate))
+    # print('shape: {0}'.format(audio_data.shape))
+    return audio_data, sampleRate
 
 
-
-
-
-
-
+# import wave
+# MAX_INT16 = np.iinfo(np.int16).max
+# class WaveWrapper(object):
+#     """
+#         A wrapper for a single wave file, maintaining some basic infomation
+#     """
+#
+#     def __init__(self, path, window_size=25, frame_offset=10):
+#         src_wave = wave.open(path, "rb")
+#         self.wave_path = path
+#         self.num_channels, self.sample_bits, self.frame_rate, \
+#         self.num_samples, _, _ = src_wave.getparams()
+#         self.byte_data = src_wave.readframes(self.num_samples)
+#         self.frame_size, self.offset_size = get_frame_info(self.frame_rate, window_size, frame_offset)
+#         self.num_frames = int((self.num_samples - self.frame_size) / self.offset_size + 1)
+#         self.frame_duration = 1 / self.frame_rate * self.offset_size
+#         src_wave.close()
+#
+#     def subframes(self, normalize=True):
+#         """
+#             Convert the samples to several frames
+#         """
+#         assert self.sample_bits == 2
+#         samples = np.fromstring(self.byte_data, dtype=np.int16)
+#         frames = np.zeros([self.num_frames, self.frame_size])
+#         for index in range(self.num_frames):
+#             base = index * self.offset_size
+#             frames[index] = samples[base: base + self.frame_size]
+#         return frames if not normalize else frames / MAX_INT16
+#
+#     class MultiChannelWrapper(object):
+#         """
+#             Wrapper to handle multiple channels/wave
+#         """
+#
+#         def __init__(self, script):
+#             with open(script, "r") as scp:
+#                 scp_list = [line.strip() for line in scp if line.strip]
+#             self.wrappers = [WaveWrapper(path) for path in scp_list]
+#
+#         def subframes(self, normalize=True):
+#             frames = [wrapper.subframes(normalize) for wrapper in self.wrappers]
+#             shape_per_item = check_status(frames)
+#             return shape_per_item, frames
+#
+#         def spectrums(self, transpose=False):
+#             spects = [compute_spectrum(wrapper, transpose) for wrapper in self.wrappers]
+#             shape_per_item = check_status(spects)
+#             return shape_per_item, spects
+#
+#         def __str__(self):
+#             return '\n'.join([str(wrapper) for wrapper in self.wrappers])
+#     def __str__(self):
+#         return "{num_channels} channels; {sample_bits} bytes per sample; " \
+#                "{num_samples} samples; {frame_rate} samples per sec. IN[{path}]".format(path=self.wave_path, \
+#                                                                                         num_channels=self.num_channels,
+#                                                                                         sample_bits=self.sample_bits, \
+#                                                                                         num_samples=self.num_samples,
+#                                                                                         frame_rate=self.frame_rate)
 
 
 if __name__ == '__main__':
-    test_solution =CGMM_MVDR()
+
+    audio, sr = read_wav('./mvdr.wav')
+
+    stft_data = []
+    for i in range(4):
+        stft_data.append(librosa.core.stft(y=audio[:, i]))
+    stft_data = np.asarray(stft_data)
+    stft_data = stft_data.transpose([1, 2, 0])
+    num_bins, time_steps, num_channels = stft_data.shape
+    test_solution = CGMM_MVDR(num_bins, time_steps, num_channels)
+    test_solution.train(stft_data)
+
 
     pass
-
-

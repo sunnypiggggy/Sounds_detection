@@ -461,6 +461,8 @@ class AudioPrepare():
         else:
             data_folders = list(filter(lambda x: x.name.split('_')[1] == 'test', data_dir))
 
+        print('Input datasets :{dataset} Training mode {mode} '.format( dataset=[x.name for x in data_folders],mode=is_training))
+
         data_folders = [list(os.scandir(x))for x in data_folders]
         data_path=reduce(lambda x,y:x+y,data_folders)
         data_path=[x.path for x in data_path]
@@ -488,6 +490,7 @@ class AudioPrepare():
             data_folders = list(filter(lambda x: x.name.split('_')[1].split('.tfrecord')[0] == 'test', data_dir))
 
         data_path = [x.path for x in data_folders]
+
         dataset = tf.data.TFRecordDataset(data_path)
 
         dataset = dataset.map(self.tf_record_prase_function)
