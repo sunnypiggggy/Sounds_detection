@@ -196,7 +196,7 @@ def main(unused_argv):
     # for _ in range(100):
     classifier.train(
         input_fn=train_input_fn,
-        steps=10000,
+        steps=20000,
         hooks=[logging_hook])
 
         # eval_results = classifier.evaluate(input_fn=test_input_fn, steps=100)
