@@ -194,10 +194,10 @@ def main(unused_argv):
     test_input_fn = test_solution.tf_input_fn_maker(is_training=False, n_epoch=1)
 
 
-    # classifier.train(
-    #     input_fn=train_input_fn,
-    #     steps=10000,
-    #     hooks=[logging_hook])
+    classifier.train(
+        input_fn=train_input_fn,
+        steps=50000,
+        hooks=[logging_hook])
     #
 
     eval_results = classifier.evaluate(input_fn=test_input_fn, steps=8000)

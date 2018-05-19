@@ -481,21 +481,22 @@ class AudioPrepare():
         return input_fn
 
 
-    def tf_input_fn_maker_debug(self, feature_dir_name='features_tfrecord', is_training=True, n_epoch=1):
+    def tf_input_fn_maker_predict(self, feature_dir_name='features_tfrecord', n_epoch=1):
         data_dir = os.scandir(feature_dir_name)
 
-        if is_training:
-            data_folders = list(filter(lambda x: x.name.split('_')[1].split('.tfrecord')[0] == 'train', data_dir))
-        else:
-            data_folders = list(filter(lambda x: x.name.split('_')[1].split('.tfrecord')[0] == 'test', data_dir))
 
-        data_path = [x.path for x in data_folders]
+        data_folders = list(filter(lambda x: x.name.split('_')[1] == 'test', data_dir))
 
+        print('Input datasets :{dataset} Predict'.format( dataset=[x.name for x in data_folders]))
+
+        data_folders = [list(os.scandir(x))for x in data_folders]
+        data_path=reduce(lambda x,y:x+y,data_folders)
+        data_path=[x.path for x in data_path]
         dataset = tf.data.TFRecordDataset(data_path)
 
         dataset = dataset.map(self.tf_record_prase_function)
-        dataset = dataset.shuffle(buffer_size=10000)
-        dataset = dataset.batch(1000)
+        # dataset = dataset.shuffle(buffer_size=1001)
+        dataset = dataset.batch(10)
         dataset = dataset.repeat(n_epoch)
 
         def input_fn():
@@ -509,6 +510,23 @@ class AudioPrepare():
 if __name__ == "__main__":
     test_solution = AudioPrepare()
 
+    sess = tf.InteractiveSession()
+    predict_input_fn=test_solution.tf_input_fn_maker_predict()
+    X,Y=predict_input_fn()
+    # while True:
+    with open(".\data_labels.txt", 'w+') as f:
+        # for _ in range(10):
+        while True:
+            try:
+                tt = sess.run(Y)
+
+                for x in tt:
+                    f.write(str(x) + '\n')
+                    print(x)
+            except tf.errors.OutOfRangeError:
+                print("End of dataset")
+                break
+
     # test_solution.tf_feature_dataset()
     # test_solution.save_feature()
 
@@ -516,7 +534,7 @@ if __name__ == "__main__":
 
     # test_solution.save_feature_TFrecord()
 
-    test_solution.save_feature_TFrecord_mutipross()
+    # test_solution.save_feature_TFrecord_mutipross()
     # dataset=test_solution.tf_get_dataset(is_training=False)
 
     # train_iput_fn = test_solution.tf_input_fn_maker(dataset)
