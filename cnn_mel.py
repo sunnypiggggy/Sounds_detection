@@ -147,7 +147,7 @@ def cnn_model_fn(features, labels, mode):
 
     predictions = {
         # Generate predictions (for PREDICT and EVAL mode)
-        "predicted": tf.argmax(input=logits, axis=1),
+        "classes": tf.argmax(input=logits, axis=1),
         # "expected": ,
         # "probabilities": tf.nn.softmax(logits, name="softmax_tensor")
     }
@@ -170,9 +170,16 @@ def cnn_model_fn(features, labels, mode):
             return tf.estimator.EstimatorSpec(mode=mode, loss=loss, train_op=train_op)
 
     # Add evaluation metrics (for EVAL mode)
+    precision_op=tf.metrics.precision(labels=labels, predictions=predictions["classes"])
+    recall_op=tf.metrics.recall(labels=labels, predictions=predictions["classes"])
+    tf.summary.scalar("F1score",2*precision_op[1]*recall_op[1]/(precision_op[1]+recall_op[1]))
     eval_metric_ops = {
         "accuracy": tf.metrics.accuracy(
-            labels=labels, predictions=predictions["classes"])}
+            labels=labels, predictions=predictions["classes"]),
+        "precision":tf.metrics.precision(labels=labels, predictions=predictions["classes"]),
+        "recall":tf.metrics.recall(labels=labels, predictions=predictions["classes"]),
+
+    }
     # eval_metric_ops = {
     #     "expected":labels,
     #     "classes": tf.argmax(input=logits, axis=1)
@@ -191,11 +198,11 @@ def main(unused_argv):
 
     hook = tf_debug.TensorBoardDebugHook("sunny-workstation:7000")
 
-    test_solution = data_utility.AudioPrepare()
+    # test_solution = data_utility.AudioPrepare()
     # train_input_fn = test_solution.tf_input_fn_maker(is_training=True, n_epoch=100)
     # Evaluate the model and print results
     test_solution = data_utility.AudioPrepare()
-    # test_input_fn = test_solution.tf_input_fn_maker(is_training=False, n_epoch=1)
+    test_input_fn = test_solution.tf_input_fn_maker(is_training=False, n_epoch=1)
 
 
     # classifier.train(
@@ -205,19 +212,19 @@ def main(unused_argv):
 
     # eval_results = classifier.evaluate(input_fn=test_input_fn, steps=100)
     # print(eval_results)
-    # eval_results = classifier.evaluate(input_fn=test_input_fn, steps=3000)
-    # print(eval_results)
-    predict_input_fn=test_solution.tf_input_fn_maker_predict()
-    predictions=classifier.predict(input_fn=predict_input_fn)
-    # tt=list(predictions)
-    i=0
-    with open('perdiction.txt','w+') as file:
-        for var in predictions:
-            print(var['predicted'])
-            file.write(str(var['predicted'])+'\n')
-            i=i+1
-            # if i==100:
-            #     break
+    eval_results = classifier.evaluate(input_fn=test_input_fn, steps=3000)
+    print(eval_results)
+    # predict_input_fn=test_solution.tf_input_fn_maker_predict()
+    # predictions=classifier.predict(input_fn=predict_input_fn)
+    # # tt=list(predictions)
+    # i=0
+    # with open('perdiction.txt','w+') as file:
+    #     for var in predictions:
+    #         print(var['predicted'])
+    #         file.write(str(var['predicted'])+'\n')
+    #         i=i+1
+    #         # if i==100:
+    #         #     break
 
 
 

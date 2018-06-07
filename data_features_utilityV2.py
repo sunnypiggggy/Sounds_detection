@@ -19,6 +19,7 @@ from itertools import combinations
 import tensorflow as tf
 from multiprocessing import Process, Pool
 
+import matlab.engine as m_eng
 
 # mfcc.shape (4, 40, 313) mel.shape (4, 128, 313) angular.shape (6, 80, 311)
 class AudioPrepare():
