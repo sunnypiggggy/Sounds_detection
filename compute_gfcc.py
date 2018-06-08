@@ -12,7 +12,7 @@ from multiprocessing import Process, Pool
 import pickle
 import gzip
 from tqdm import tqdm
-
+import gammatone.gtgram as gt
 
 def worker(audio_dir: list, save_dir, process_i=0):
     def read_wav(audio_path):
@@ -31,26 +31,22 @@ def worker(audio_dir: list, save_dir, process_i=0):
     for var in tqdm(audio_dir, desc='process {0}'.format(process_i)):
         audio_data, sr = read_wav(var)
 
-        acr_stft = []
+        processed_sig = []
         # t=[]
         for i in range(audio_data.shape[1]):
             mean = np.mean(audio_data[:, i])
             std = np.std(audio_data[:,i])
             x = (audio_data[:, i] - mean) / std
             # t.append(x)
-            temp = librosa.amplitude_to_db(
-                    librosa.core.stft(
-                    librosa.core.autocorrelate(x),
-                    n_fft=1024,
-                    hop_length=512))
-            temp=temp[6:256,:]#slice 100Hz to 4000Hz
-            acr_stft.append(temp)
+            temp =  gt.gtgram(x,sr,0.0638,0.0318,100,100)
+            temp=librosa.amplitude_to_db(temp)
+            processed_sig.append(temp)
         # t=np.asarray(t)
-        acr_stft = np.asarray(acr_stft)
+        processed_sig = np.asarray(processed_sig)
 
         feature_dict = {
-            'acr_stft': acr_stft,
-            'shape': acr_stft.shape
+            'acr_stft': processed_sig,
+            'shape': processed_sig.shape
         }
         save_name = var.split('\\')[-1].split('.wav')[0] + '.gzip'
         with gzip.open(os.path.join(save_dir, save_name), 'wb') as f:
@@ -63,10 +59,10 @@ if __name__ == '__main__':
 
     dataset_dir = "DCASE2018-task5-dev"
     audio_dirs = list(os.scandir(os.path.join(dataset_dir, 'audio')))
-    feature_ACR_dirs = "ACR_stft"
+    feature_dirs = "gfcc"
 
-    if not os.path.exists(feature_ACR_dirs):
-        os.mkdir(feature_ACR_dirs)
+    if not os.path.exists(feature_dirs):
+        os.mkdir(feature_dirs)
 
     audio_path = [[] for _ in range(6)]
     for i in range(len(audio_dirs)):
@@ -75,11 +71,11 @@ if __name__ == '__main__':
 
     process_pool = Pool()
     for i in range(6):
-        process_pool.apply_async(worker, args=(audio_path[i], feature_ACR_dirs,i))
+        process_pool.apply_async(worker, args=(audio_path[i], feature_dirs,i))
 
     process_pool.close()
     process_pool.join()
-    # worker(audio_path[0], feature_ACR_dirs, 0)
+    # worker(audio_path[0], feature_dirs, 0)
     print("main process ends")
 
     # feature_acr_stft = list(os.scandir(feature_ACR_dirs))
