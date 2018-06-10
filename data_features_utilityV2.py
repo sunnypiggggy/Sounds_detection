@@ -39,122 +39,7 @@ class AudioPrepare():
         # print('shape: {0}'.format(audio_data.shape))
         return audio_data, sampleRate
 
-    def _getMaxTDOA(self, microphoneSeparationInMetres):
-        sound_speed = 340.29  # m/s
-        return microphoneSeparationInMetres / sound_speed
 
-    def _getTDOAsINSecond(self, microphoneSeparationInMetres, numTDOAs):
-        max_TDOA = self._getMaxTDOA(microphoneSeparationInMetres)
-        tdoa_In_Seconds = np.linspace(-max_TDOA, max_TDOA, numTDOAs)
-        return tdoa_In_Seconds
-
-    def get_angular_spectrogram_test(self, stereoSamples, windowSize, hopSize, fftSize=None, SampleRate=16000,
-                                     num_TDOAs=128,
-                                     microphoneSeparationInMetres=0.05):
-        '''
-
-        :param stereoSamples:shape (2,x)
-        :param windowSize:
-        :param hopSize:
-        :param fftSize:
-        :param SampleRate:
-        :param num_TDOAs: resolution, nums of data to accmulate
-        :param microphoneSeparationInMetres:
-        :return:
-        '''
-        if fftSize is None:
-            fftSize = windowSize
-
-        complexMixtureSpectrograms = []
-        for channelIndex in range(2):
-            complexMixtureSpectrograms.append(
-                librosa.stft(np.squeeze(stereoSamples[channelIndex]).copy(), n_fft=fftSize, hop_length=hopSize,
-                             win_length=windowSize, center=False))
-
-        complexMixtureSpectrograms = np.array(complexMixtureSpectrograms)
-
-        num_channel, num_frequenies, num_time = complexMixtureSpectrograms.shape
-        frequenciesInHz = np.linspace(0, SampleRate / 2, num_frequenies)
-
-        spectralCoherenceV = complexMixtureSpectrograms[0] * complexMixtureSpectrograms[1].conj() / np.abs(
-            complexMixtureSpectrograms[0]) / np.abs(complexMixtureSpectrograms[1])
-
-        tdoasInSeconds = self._getTDOAsINSecond(microphoneSeparationInMetres, num_TDOAs)
-        expJOmega = np.exp(np.outer(frequenciesInHz, -(2j * np.pi) * tdoasInSeconds))
-
-        FREQ, TIME, TDOA = range(3)
-        angular_spectrogram = np.sum(
-            np.einsum(spectralCoherenceV, [FREQ, TIME], expJOmega, [FREQ, TDOA], [TDOA, FREQ, TIME]).real,
-            axis=1)
-
-        angular_spectrogram[angular_spectrogram < 0] = 0
-        meanAngularSpectrum = np.mean(angular_spectrogram, axis=-1)
-        return angular_spectrogram, meanAngularSpectrum
-
-    def get_angular_spectrogram(self, input_signal, ref_signal, windowSize, hopSize, fftSize=None, SampleRate=16000,
-                                num_TDOAs=128,
-                                microphoneSeparationInMetres=0.05):
-
-        if fftSize is None:
-            fftSize = windowSize
-
-        complexMixtureSpectrograms = []
-
-        complexMixtureSpectrograms.append(
-            librosa.stft(np.squeeze(input_signal).copy(), n_fft=fftSize, hop_length=hopSize,
-                         win_length=windowSize, center=False))
-        complexMixtureSpectrograms.append(
-            librosa.stft(np.squeeze(ref_signal).copy(), n_fft=fftSize, hop_length=hopSize,
-                         win_length=windowSize, center=False))
-
-        complexMixtureSpectrograms = np.array(complexMixtureSpectrograms)
-
-        num_channel, num_frequenies, num_time = complexMixtureSpectrograms.shape
-        frequenciesInHz = np.linspace(0, SampleRate / 2, num_frequenies)
-
-        spectralCoherenceV = complexMixtureSpectrograms[0] * complexMixtureSpectrograms[1].conj() / np.abs(
-            complexMixtureSpectrograms[0]) / np.abs(complexMixtureSpectrograms[1])
-
-        tdoasInSeconds = self._getTDOAsINSecond(microphoneSeparationInMetres, num_TDOAs)
-        expJOmega = np.exp(np.outer(frequenciesInHz, -(2j * np.pi) * tdoasInSeconds))
-
-        FREQ, TIME, TDOA = range(3)
-        angular_spectrogram = np.sum(
-            np.einsum(spectralCoherenceV, [FREQ, TIME], expJOmega, [FREQ, TDOA], [TDOA, FREQ, TIME]).real,
-            axis=1)
-
-        angular_spectrogram[angular_spectrogram < 0] = 0
-        meanAngularSpectrum = np.mean(angular_spectrogram, axis=-1)
-        return angular_spectrogram, meanAngularSpectrum
-
-    def gcc_phat(self, sig, refsig, fs=1, max_tau=None, interp=16):
-        '''
-        This function computes the offset between the signal sig and the reference signal refsig
-        using the Generalized Cross Correlation - Phase Transform (GCC-PHAT)method.
-        '''
-
-        # make sure the length for the FFT is larger or equal than len(sig) + len(refsig)
-        n = sig.shape[0] + refsig.shape[0]
-
-        # Generalized Cross Correlation Phase Transform
-        SIG = np.fft.rfft(sig, n=n)
-        REFSIG = np.fft.rfft(refsig, n=n)
-        R = SIG * np.conj(REFSIG)
-
-        cc = np.fft.irfft(R / np.abs(R), n=(interp * n))
-
-        max_shift = int(interp * n / 2)
-        if max_tau:
-            max_shift = np.minimum(int(interp * fs * max_tau), max_shift)
-
-        cc = np.concatenate((cc[-max_shift:], cc[:max_shift + 1]))
-
-        # find max cross correlation index
-        shift = np.argmax(np.abs(cc)) - max_shift
-
-        tau = shift / float(interp * fs)
-
-        return tau, cc
 
     def feature_extract(self, audio_path, mfcc_bands=40, mfcc_n_fft=1024, mel_spec_n_fft=512, angular_windowsize=1024,
                         angular_n_fft=1024,
@@ -194,97 +79,7 @@ class AudioPrepare():
         angular = np.concatenate([angular, paddings], 2)
         return (mfccs, mels, angular)
 
-    # def save_feature(self, dataset_dir="DCASE2018-task5-dev", feature_dir_name='features'):
-    #     if not os.path.exists(feature_dir_name):
-    #         os.mkdir(feature_dir_name)
-    #
-    #     data_meta_dirs = os.scandir(os.path.join(dataset_dir, 'evaluation_setup'))
-    #
-    #     for meta in data_meta_dirs:
-    #         try:
-    #             with open(meta, 'r') as f_meta:
-    #                 # print(meta.name)
-    #                 for line in tqdm(f_meta.readlines()):
-    #                     # print(line.split()[0])
-    #                     path, label, sess_label = line.split()
-    #
-    #                     mfccs, mels, angular = self.feature_extract(os.path.join(*[dataset_dir, *path.split('/')]),
-    #                                                                 mfcc_bands=cfg.mfcc_bands,
-    #                                                                 mfcc_n_fft=cfg.mfcc_n_fft,
-    #                                                                 mel_spec_n_fft=cfg.mel_spec_n_fft,
-    #                                                                 angular_windowsize=cfg.angular_windowsize,
-    #                                                                 angular_n_fft=cfg.angular_n_fft,
-    #                                                                 num_TDOA=cfg.num_TDOA
-    #                                                                 )
-    #                     feature_dict = {
-    #                         'label': label,
-    #                         'session': sess_label,
-    #                         'mfcc': mfccs,
-    #                         'mel': mels,
-    #                         'angular': angular
-    #                     }
-    #                     feature_save_dir = os.path.join(feature_dir_name, meta.name.split('.txt')[0])
-    #                     if not os.path.exists(feature_save_dir):
-    #                         os.mkdir(feature_save_dir)
-    #                     with open(os.path.join(feature_save_dir, path.split('/')[1].split('.wav')[0]), 'wb') as f:
-    #                         pickle.dump(feature_dict, f)
-    #                     # with open(os.path.join(*[feature_dir_name,
-    #                     #                          meta.name.split('.txt')[0] + '-' + path.split('/')[1].split('.wav')[
-    #                     #                              0] + '-' + label]), 'wb') as f:
-    #                     #     pickle.dump(feature_dict, f)
-    #                     # print('dumping ' + os.path.join(*[feature_dir_name, meta.name.split('.txt')[0] + '-' +
-    #                     #                                   path.split('/')[1].split('.wav')[0] + '-' + label]))
-    #
-    #         except Exception as e:
-    #             print(e)
-    #
-    # def save_feature_multipross(self, dataset_dir="DCASE2018-task5-dev", feature_dir_name='features'):
-    #     if not os.path.exists(feature_dir_name):
-    #         os.mkdir(feature_dir_name)
-    #
-    #     data_meta_dirs = list(os.scandir(os.path.join(dataset_dir, 'evaluation_setup')))
-    #
-    #     pross_pool = Pool(processes=6)
-    #     for i in range(len(data_meta_dirs)):
-    #         pross_pool.apply_async(self.worker, args=(
-    #             data_meta_dirs[i].path, data_meta_dirs[i].name.split('.txt')[0], dataset_dir, feature_dir_name))
-    #
-    #     pross_pool.close()
-    #     pross_pool.join()
-    #     print('main pross end')
-    #
-    # def worker(self, meta, fold_dir_name, dataset_dir, feature_dir_name):
-    #     print('start process {0}'.format(meta))
-    #     with open(meta, 'r') as f_meta:
-    #         feature_save_dir = os.path.join(feature_dir_name, fold_dir_name)
-    #         # print(feature_save_dir)
-    #         if not os.path.exists(feature_save_dir):
-    #             os.mkdir(feature_save_dir)
-    #         for line in tqdm(f_meta.readlines(), desc=fold_dir_name):
-    #             path, label, sess_label = line.split()
-    #             mfcc, mel, angular = self.feature_extract(os.path.join(*[dataset_dir, *path.split('/')]),
-    #                                                       mfcc_bands=cfg.mfcc_bands,
-    #                                                       mfcc_n_fft=cfg.mfcc_n_fft,
-    #                                                       mel_spec_n_fft=cfg.mel_spec_n_fft,
-    #                                                       angular_windowsize=cfg.angular_windowsize,
-    #                                                       angular_n_fft=cfg.angular_n_fft,
-    #                                                       num_TDOA=cfg.num_TDOA
-    #                                                       )
-    #             # feature_dict = {
-    #             #     'label': label,
-    #             #     'session': sess_label,
-    #             #     'mfcc': mfccs,
-    #             #     'mel': mels,
-    #             #     'angular': angular
-    #             # }
-    #             #
-    #             # with gzip.open(os.path.join(feature_save_dir, path.split('/')[1].split('.wav')[0]) + '.gz', 'wb') as f:
-    #             #     pickle.dump(feature_dict, f)
-    #
-    #             np.savez_compressed(os.path.join(feature_save_dir, path.split('/')[1].split('.wav')[0]), mfcc=mfcc,
-    #                                 mel=mel, angular=angular)
-    #
-    #     print('process {0} done'.format(meta))
+
 
     def int64_feature(self, value):
         return tf.train.Feature(int64_list=tf.train.Int64List(value=[value]))
@@ -299,58 +94,6 @@ class AudioPrepare():
         for i in range(0, len(listx), size):
             yield listx[i:i + size]
 
-    # def save_feature_TFrecord(self, dataset_dir="DCASE2018-task5-dev", feature_dir_name='features_tfrecord'):
-    #     if not os.path.exists(feature_dir_name):
-    #         os.mkdir(feature_dir_name)
-    #
-    #     data_meta_dirs = list(os.scandir(os.path.join(dataset_dir, 'evaluation_setup')))
-    #
-    #     for meta in data_meta_dirs:
-    #         # try:
-    #         with open(meta, 'r') as f_meta:
-    #             # print(meta.name)
-    #             f_meta.seek(0)
-    #             meta_lines = f_meta.readlines()
-    #             random.shuffle(meta_lines)
-    #
-    #             meta_chunk = list(self.split_chunks(meta_lines, 1000))
-    #
-    #             with tf.python_io.TFRecordWriter(
-    #                     os.path.join(feature_dir_name, meta.name.split('.txt')[0]) + '.tfrecord') as writer:
-    #                 # print('processing {0}'.format(meta.name.split('.txt')[0]))
-    #
-    #                 for chunk in tqdm(meta_chunk):
-    #                     # print("\n" + line.split()[0])
-    #                     for line in chunk:
-    #                         path, label, sess_label = line.split()
-    #                         mfcc, mel, angular = self.feature_extract(os.path.join(*[dataset_dir, *path.split('/')]),
-    #                                                                   mfcc_bands=cfg.mfcc_bands,
-    #                                                                   mfcc_n_fft=cfg.mfcc_n_fft,
-    #                                                                   mel_spec_n_fft=cfg.mel_spec_n_fft,
-    #                                                                   angular_windowsize=cfg.angular_windowsize,
-    #                                                                   angular_n_fft=cfg.angular_n_fft,
-    #                                                                   num_TDOA=cfg.num_TDOA
-    #                                                                   )
-    #
-    #                         features = {
-    #                             'label': self.int64_feature(cfg.class_name2index[label]),
-    #                             'session': self.bytes_feature(bytes(sess_label, encoding='utf-8')),
-    #                             'mfcc': tf.train.Feature(float_list=tf.train.FloatList(value=mfcc.flatten().tolist())),
-    #                             'mfcc_shape': tf.train.Feature(int64_list=tf.train.Int64List(value=list(mfcc.shape))),
-    #                             'mel': tf.train.Feature(float_list=tf.train.FloatList(value=mel.flatten().tolist())),
-    #                             'mel_shape': tf.train.Feature(int64_list=tf.train.Int64List(value=list(mel.shape))),
-    #                             'angular': tf.train.Feature(
-    #                                 float_list=tf.train.FloatList(value=angular.flatten().tolist())),
-    #                             'angular_shape': tf.train.Feature(
-    #                                 int64_list=tf.train.Int64List(value=list(angular.shape))),
-    #
-    #                         }
-    #                         example = tf.train.Example(features=tf.train.Features(feature=features))
-    #                         serialized = example.SerializeToString()
-    #                         writer.write(serialized)
-    #
-    # # except Exception as e:
-    # #     print(e)
 
 
     def save_feature_TFrecord_mutipross(self, dataset_dir="DCASE2018-task5-dev", feature_dir_name='features_tfrecord',
@@ -397,14 +140,14 @@ class AudioPrepare():
                 with tf.python_io.TFRecordWriter(os.path.join(feature_dir_name, fold_name,str(i) + '.tfrecord')) as writer:
                     for line in tqdm(meta_chunk[i],desc='\n'+fold_name+' chunck '+str(i)):
                         path, label, sess_label = line.split()
-                        mfcc, mel, angular = self.feature_extract(os.path.join(*[dataset_dir, *path.split('/')]),
-                                                                  mfcc_bands=cfg.mfcc_bands,
-                                                                  mfcc_n_fft=cfg.mfcc_n_fft,
-                                                                  mel_spec_n_fft=cfg.mel_spec_n_fft,
-                                                                  angular_windowsize=cfg.angular_windowsize,
-                                                                  angular_n_fft=cfg.angular_n_fft,
-                                                                  num_TDOA=cfg.num_TDOA
-                                                                  )
+                        # mfcc, mel, angular = self.feature_extract(os.path.join(*[dataset_dir, *path.split('/')]),
+                        #                                           mfcc_bands=cfg.mfcc_bands,
+                        #                                           mfcc_n_fft=cfg.mfcc_n_fft,
+                        #                                           mel_spec_n_fft=cfg.mel_spec_n_fft,
+                        #                                           angular_windowsize=cfg.angular_windowsize,
+                        #                                           angular_n_fft=cfg.angular_n_fft,
+                        #                                           num_TDOA=cfg.num_TDOA
+                        #                                           )
                         features = {
                             'label': self.int64_feature(cfg.class_name2index[label]),
                             'session': self.bytes_feature(bytes(sess_label, encoding='utf-8')),

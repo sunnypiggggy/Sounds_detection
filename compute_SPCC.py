@@ -7,14 +7,19 @@ import librosa.display as rdis
 
 import numpy as np
 import scipy as sci
+# import scipy.fftpack as fftpack
+from sklearn.decomposition import IncrementalPCA
+
 from multiprocessing import Process, Pool
 
 import pickle
 import gzip
 from tqdm import tqdm
 
+import config as cfg
 
-def worker(audio_dir: list, save_dir, process_i=0):
+
+def worker(audio_dir: list, save_dir, class_index, process_i=0):
     def read_wav(audio_path):
         '''
 
@@ -28,39 +33,48 @@ def worker(audio_dir: list, save_dir, process_i=0):
         # print('shape: {0}'.format(audio_data.shape))
         return audio_data, sampleRate
 
-    def pre_emphasis(x)
+    def pre_emphasis(x):
         b = np.asarray([1.0, -0.97])
         emphasized_sig = sci.signal.lfilter(b=b, a=1.0, x=x)
         return emphasized_sig
 
-    for var in tqdm(audio_dir, desc='process {0}'.format(process_i)):
-        audio_data, sr = read_wav(var)
+    def get_next_batch(input, batch_size=10):
+        start= 0
+        while start<len(input):
+            yield input[start:start + batch_size]
+            start = start + 5
 
-        acr_stft = []
+    pca = IncrementalPCA(n_components=900, batch_size=10)
+
+    for var in tqdm(get_next_batch(audio_dir), desc='process {0}'.format(process_i)):
+        audio_datas=[]
+        for x in var:
+            audio_data, sr = read_wav(x)
+            audio_datas.append(audio_data[:, 0])
+
+        features = []
         t = []
-        for i in range(audio_data.shape[1]):
-            mean = np.mean(audio_data[:, i])
-            std = np.std(audio_data[:, i])
-            x = (audio_data[:, i] - mean) / std
+        for i in range(len(audio_datas)):
+            mean = np.mean(audio_datas[i])
+            std = np.std(audio_datas[i])
+            x = (audio_datas[i] - mean) / std
             t.append(x)
-            x=pre_emphasis(x)
+            x = pre_emphasis(x)
+            features.append(np.fft.fft(x,n=1024))
+        # mean = np.mean(audio_data)
+        # std = np.std(audio_data)
+        # x = (audio_data - mean) / std
+        # x = pre_emphasis(x)
+        # features = np.fft.fft(x, n=1024)
+        features = np.abs(np.asarray(features))
 
-            tt=librosa.core.stft(x,n_fft=1024,hop_length=512)
-            # temp = librosa.amplitude_to_db(
-            #     librosa.core.stft(
-            #         librosa.core.autocorrelate(x),
-            #         n_fft=1024,
-            #         hop_length=512))
-
-            # acr_stft.append(temp)
-        t = np.asarray(t)
-        acr_stft = np.asarray(acr_stft)
+        pca.partial_fit(features)
 
         feature_dict = {
-            'acr_stft': acr_stft,
-            'shape': acr_stft.shape
+            'pca_model': pca,
+            'class_index': class_index
         }
-        save_name = var.split('\\')[-1].split('.wav')[0] + '.gzip'
+        save_name = 'class_' + str(class_index) + '.gzip'
         with gzip.open(os.path.join(save_dir, save_name), 'wb') as f:
             pickle.dump(feature_dict, f)
 
@@ -70,23 +84,31 @@ if __name__ == '__main__':
 
     dataset_dir = "DCASE2018-task5-dev"
     audio_dirs = list(os.scandir(os.path.join(dataset_dir, 'audio')))
-    feature_ACR_dirs = "ACR_stft"
+    data_meta_dirs = list(os.scandir(os.path.join(dataset_dir, 'evaluation_setup')))
+    feature_dirs = "SPCC"
 
-    if not os.path.exists(feature_ACR_dirs):
-        os.mkdir(feature_ACR_dirs)
+    if not os.path.exists(feature_dirs):
+        os.mkdir(feature_dirs)
 
-    audio_path = [[] for _ in range(6)]
-    for i in range(len(audio_dirs)):
-        if audio_dirs[i].name.split('.')[1] == 'wav':
-            audio_path[i % 6].append(audio_dirs[i].path)
+    audio_class_dirs = {}
+    for i in range(cfg.num_class):
+        audio_class_dirs[i] = []
+
+    for meta in data_meta_dirs:
+        with open(meta, 'r') as f_meta:
+            f_meta.seek(0)
+            for audio_file_line in f_meta.readlines():
+                path, label, sess_label = audio_file_line.split()
+                file_name = path.split('/')[-1]
+                audio_class_dirs[cfg.class_name2index[label]].append(os.path.join(dataset_dir, 'audio', file_name))
 
     # process_pool = Pool()
     # for i in range(6):
-    #     process_pool.apply_async(worker, args=(audio_path[i], feature_ACR_dirs,i))
+    #     process_pool.apply_async(worker, args=(audio_path[i], feature_dirs,i))
     #
     # process_pool.close()
     # process_pool.join()
-    worker(audio_path[0], feature_ACR_dirs, 0)
+    worker(audio_class_dirs[1], feature_dirs, 0, 0)
     print("main process ends")
 
     # feature_acr_stft = list(os.scandir(feature_ACR_dirs))

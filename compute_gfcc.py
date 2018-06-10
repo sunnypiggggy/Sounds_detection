@@ -38,6 +38,7 @@ def worker(audio_dir: list, save_dir, process_i=0):
             std = np.std(audio_data[:,i])
             x = (audio_data[:, i] - mean) / std
             # t.append(x)
+            # window size 0.0638s hop 0.0318 100 channels f_min 100Hz
             temp =  gt.gtgram(x,sr,0.0638,0.0318,100,100)
             temp=librosa.amplitude_to_db(temp)
             processed_sig.append(temp)
@@ -45,7 +46,7 @@ def worker(audio_dir: list, save_dir, process_i=0):
         processed_sig = np.asarray(processed_sig)
 
         feature_dict = {
-            'acr_stft': processed_sig,
+            'gfcc': processed_sig,
             'shape': processed_sig.shape
         }
         save_name = var.split('\\')[-1].split('.wav')[0] + '.gzip'
