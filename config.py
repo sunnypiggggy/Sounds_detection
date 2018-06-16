@@ -31,6 +31,16 @@ angular_windowsize = 1024
 angular_n_fft = 1024
 anguler_shape = (80, 313)
 
+morse_shape=(101,314)
+
+bump_shape=(101,314)
+
+gfcc_shape=(100,313)
+
+acr_stft=(250,313)
+
+
+
 num_TDOA = 80
 
 pass

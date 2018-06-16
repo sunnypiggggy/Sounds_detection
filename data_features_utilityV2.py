@@ -21,6 +21,7 @@ from multiprocessing import Process, Pool
 
 import matlab.engine as m_eng
 
+
 # mfcc.shape (4, 40, 313) mel.shape (4, 128, 313) angular.shape (6, 80, 311)
 class AudioPrepare():
     def __init__(self):
@@ -39,48 +40,6 @@ class AudioPrepare():
         # print('shape: {0}'.format(audio_data.shape))
         return audio_data, sampleRate
 
-
-
-    def feature_extract(self, audio_path, mfcc_bands=40, mfcc_n_fft=1024, mel_spec_n_fft=512, angular_windowsize=1024,
-                        angular_n_fft=1024,
-                        num_TDOA=80):  # mel_spec_n_fft=640
-        audio_data, sample_rate = self.read_wav(audio_path)
-        combs = list(combinations([i for i in range(4)], 2))
-        # chan_0 = audio_data[:, 0]
-        # chan_1 = audio_data[:, 1]
-        # chan_2 = audio_data[:, 2]
-        # chan_3 = audio_data[:, 3]
-
-        mfccs = []
-        mels = []
-        angular = []
-        for i in range(4):
-            # tt=(librosa.feature.mfcc(y=audio_data[:, i], sr=sample_rate, n_mfcc=mfcc_bands)
-            mfccs.append(librosa.feature.mfcc(y=audio_data[:, i], sr=sample_rate, n_mfcc=mfcc_bands, n_fft=mfcc_n_fft,
-                                              hop_length=mfcc_n_fft // 2))
-            # mfccs.append(np.mean(librosa.feature.mfcc(y=audio_data[:, i], sr=sample_rate, n_mfcc=mfcc_bands)))
-            mels.append(librosa.amplitude_to_db(
-                librosa.feature.melspectrogram(y=audio_data[:, i], sr=sample_rate, n_fft=mel_spec_n_fft,
-                                               hop_length=mel_spec_n_fft // 2), ref=np.max))
-
-        for i, j in combs:
-            angular.append(
-                self.get_angular_spectrogram(audio_data[:, i], audio_data[:, j],
-                                             SampleRate=sample_rate,
-                                             windowSize=angular_windowsize,
-                                             fftSize=angular_n_fft,
-                                             hopSize=angular_n_fft // 2,
-                                             num_TDOAs=num_TDOA)[0])
-        mfccs = np.asarray(mfccs)
-        mels = np.asarray(mels)
-        angular = np.asarray(angular)
-
-        paddings = np.zeros([angular.shape[0], angular.shape[1], 2])
-        angular = np.concatenate([angular, paddings], 2)
-        return (mfccs, mels, angular)
-
-
-
     def int64_feature(self, value):
         return tf.train.Feature(int64_list=tf.train.Int64List(value=[value]))
 
@@ -94,75 +53,103 @@ class AudioPrepare():
         for i in range(0, len(listx), size):
             yield listx[i:i + size]
 
-
-
-    def save_feature_TFrecord_mutipross(self, dataset_dir="DCASE2018-task5-dev", feature_dir_name='features_tfrecord',
+    def save_feature_TFrecord_mutipross(self, dataset_dir="DCASE2018-task5-dev",
+                                        feature_dir_name='features_tfrecord_V2',
                                         train_sets=True):
         if not os.path.exists(feature_dir_name):
             os.mkdir(feature_dir_name)
 
-
         data_meta_dirs = list(os.scandir(os.path.join(dataset_dir, 'evaluation_setup')))
         if train_sets == True:
-            data_meta_dirs=filter(lambda x:x.name.split('_')[1].split('.txt')[0]=='train',data_meta_dirs)
+            data_meta_dirs = filter(lambda x: x.name.split('_')[1].split('.txt')[0] == 'train', data_meta_dirs)
         else:
             data_meta_dirs = filter(lambda x: x.name.split('_')[1].split('.txt')[0] == 'test', data_meta_dirs)
 
-        data_meta_dirs=list(data_meta_dirs)
+        data_meta_dirs = list(data_meta_dirs)
         # self.tfrecord_worker(data_meta_dirs[0].path,data_meta_dirs[0].name.split('.txt')[0],dataset_dir, feature_dir_name)
 
         pross_pool = Pool()
         for i in range(len(data_meta_dirs)):
             pross_pool.apply_async(self.tfrecord_worker, args=(
                 data_meta_dirs[i].path, data_meta_dirs[i].name.split('.txt')[0], dataset_dir, feature_dir_name))
+            # result =result.get()
 
         pross_pool.close()
         pross_pool.join()
         print('main pross end')
 
-
     def tfrecord_worker(self, meta, fold_name, dataset_dir, feature_dir_name):
-        print('start  process {0} TFrecord'.format(meta))
+        print('start TFrecord  process {0} '.format(meta))
+        # try:
+        #     with open(meta, 'r') as f_meta:
+        #         if not os.path.exists(os.path.join(feature_dir_name, fold_name)):
+        #             os.mkdir(os.path.join(feature_dir_name, fold_name))
+        #
+        #         with open(meta, 'r') as f_meta:
+        #             f_meta.seek(0)
+        #             meta_lines = f_meta.readlines()
+        #             random.shuffle(meta_lines)
+        #             meta_chunk = list(self.split_chunks(meta_lines, 1000))
+        #
+        #             for i in range(len(meta_chunk)):
+        #                 with tf.python_io.TFRecordWriter(
+        #                         os.path.join(feature_dir_name, fold_name, str(i) + '.tfrecord')) as writer:
+        #                     for line in tqdm(meta_chunk[i], desc='\n' + fold_name + ' chunck ' + str(i)):
+        #                         path, label, sess_label = line.split()
+        #                         audio_file_name = path.split('/')[-1].split('.')[0]
+        #
+        #                         with gzip.open(os.path.join('mel_angular_mfcc', audio_file_name + '.gzip')) as f_handle:
+        #                             feature_dict = pickle.load(f_handle)
+        #                             mfcc = feature_dict['mfcc']
+        #                             mel = feature_dict['mel']
+        #                             angular = feature_dict['angular']
+        #
+        #                         with gzip.open(os.path.join('wavelets', audio_file_name + '.gzip')) as f_handle:
+        #                             feature_dict = pickle.load(f_handle)
+        #                             morse = feature_dict['morse']
+        #                             bump = feature_dict['bump']
+        #
+        #                         with gzip.open(os.path.join('gfcc', audio_file_name + '.gzip')) as f_handle:
+        #                             feature_dict = pickle.load(f_handle)
+        #                             gfcc = feature_dict['gfcc']
+        #
+        #                         with gzip.open(os.path.join('ACR_stft', audio_file_name + '.gzip')) as f_handle:
+        #                             feature_dict = pickle.load(f_handle)
+        #                             acr_stft = feature_dict['acr_stft']
+        #
+        #                         features = {
+        #                             'label': self.int64_feature(cfg.class_name2index[label]),
+        #                             'session': self.bytes_feature(bytes(sess_label, encoding='utf-8')),
+        #                             'mfcc': tf.train.Feature(float_list=tf.train.FloatList(value=mfcc.flatten().tolist())),
+        #                             'mfcc_shape': tf.train.Feature(int64_list=tf.train.Int64List(value=list(mfcc.shape))),
+        #                             'mel': tf.train.Feature(float_list=tf.train.FloatList(value=mel.flatten().tolist())),
+        #                             'mel_shape': tf.train.Feature(int64_list=tf.train.Int64List(value=list(mel.shape))),
+        #                             'angular': tf.train.Feature(
+        #                                 float_list=tf.train.FloatList(value=angular.flatten().tolist())),
+        #                             'angular_shape': tf.train.Feature(int64_list=tf.train.Int64List(value=list(angular.shape))),
+        #
+        #                             'morse': tf.train.Feature(float_list=tf.train.FloatList(value=morse.flatten().tolist())),
+        #                             'morse_shape': tf.train.Feature(int64_list=tf.train.Int64List(value=list(morse.shape))),
+        #
+        #                             'bump': tf.train.Feature(float_list=tf.train.FloatList(value=bump.flatten().tolist())),
+        #                             'bump_shape': tf.train.Feature(int64_list=tf.train.Int64List(value=list(bump.shape))),
+        #
+        #                             'gfcc': tf.train.Feature(float_list=tf.train.FloatList(value=gfcc.flatten().tolist())),
+        #                             'gfcc_shape': tf.train.Feature(int64_list=tf.train.Int64List(value=list(gfcc.shape))),
+        #
+        #                             'acr_stft': tf.train.Feature(
+        #                                 float_list=tf.train.FloatList(value=acr_stft.flatten().tolist())),
+        #                             'acr_stft_shape': tf.train.Feature(
+        #                                 int64_list=tf.train.Int64List(value=list(acr_stft.shape))),
+        #
+        #                         }
+        #                         example = tf.train.Example(features=tf.train.Features(feature=features))
+        #                         serialized = example.SerializeToString()
+        #                         writer.write(serialized)
+        # except Exception as e:
+        #     print('shit happen {0}'.format(meta))
+        #     print(e)
 
-        with open(meta, 'r') as f_meta:
-            if not os.path.exists(os.path.join(feature_dir_name, fold_name)):
-                os.mkdir(os.path.join(feature_dir_name, fold_name))
-
-
-            with open(meta, 'r') as f_meta:
-                f_meta.seek(0)
-                meta_lines = f_meta.readlines()
-                random.shuffle(meta_lines)
-                meta_chunk = list(self.split_chunks(meta_lines, 1000))
-
-
-            for i in range(len(meta_chunk)) :
-                with tf.python_io.TFRecordWriter(os.path.join(feature_dir_name, fold_name,str(i) + '.tfrecord')) as writer:
-                    for line in tqdm(meta_chunk[i],desc='\n'+fold_name+' chunck '+str(i)):
-                        path, label, sess_label = line.split()
-                        # mfcc, mel, angular = self.feature_extract(os.path.join(*[dataset_dir, *path.split('/')]),
-                        #                                           mfcc_bands=cfg.mfcc_bands,
-                        #                                           mfcc_n_fft=cfg.mfcc_n_fft,
-                        #                                           mel_spec_n_fft=cfg.mel_spec_n_fft,
-                        #                                           angular_windowsize=cfg.angular_windowsize,
-                        #                                           angular_n_fft=cfg.angular_n_fft,
-                        #                                           num_TDOA=cfg.num_TDOA
-                        #                                           )
-                        features = {
-                            'label': self.int64_feature(cfg.class_name2index[label]),
-                            'session': self.bytes_feature(bytes(sess_label, encoding='utf-8')),
-                            'mfcc': tf.train.Feature(float_list=tf.train.FloatList(value=mfcc.flatten().tolist())),
-                            'mfcc_shape': tf.train.Feature(int64_list=tf.train.Int64List(value=list(mfcc.shape))),
-                            'mel': tf.train.Feature(float_list=tf.train.FloatList(value=mel.flatten().tolist())),
-                            'mel_shape': tf.train.Feature(int64_list=tf.train.Int64List(value=list(mel.shape))),
-                            'angular': tf.train.Feature(
-                                float_list=tf.train.FloatList(value=angular.flatten().tolist())),
-                            'angular_shape': tf.train.Feature(int64_list=tf.train.Int64List(value=list(angular.shape))),
-
-                        }
-                        example = tf.train.Example(features=tf.train.Features(feature=features))
-                        serialized = example.SerializeToString()
-                        writer.write(serialized)
 
     def tf_record_prase_function(self, example_proto):
         features = {
@@ -173,7 +160,20 @@ class AudioPrepare():
             'mel': tf.VarLenFeature(dtype=tf.float32),
             'mel_shape': tf.FixedLenFeature(shape=(3,), dtype=tf.int64),
             'angular': tf.VarLenFeature(dtype=tf.float32),
-            'angular_shape': tf.FixedLenFeature(shape=(3,), dtype=tf.int64)
+            'angular_shape': tf.FixedLenFeature(shape=(3,), dtype=tf.int64),
+
+            'morse': tf.VarLenFeature(dtype=tf.float32),
+            'morse_shape': tf.FixedLenFeature(shape=(3,), dtype=tf.int64),
+
+            'bump': tf.VarLenFeature(dtype=tf.float32),
+            'bump_shape': tf.FixedLenFeature(shape=(3,), dtype=tf.int64),
+
+            'gfcc': tf.VarLenFeature(dtype=tf.float32),
+            'gfcc_shape': tf.FixedLenFeature(shape=(3,), dtype=tf.int64),
+
+            'acr_stft': tf.VarLenFeature(dtype=tf.float32),
+            'acr_stft_shape': tf.FixedLenFeature(shape=(3,), dtype=tf.int64),
+
         }
         parsed_features = tf.parse_single_example(
             example_proto,
@@ -191,11 +191,26 @@ class AudioPrepare():
         angular = tf.reshape(angular, parsed_features['angular_shape'])
         angular = tf.transpose(angular, [1, 2, 0])
 
+        morse = tf.sparse_tensor_to_dense(parsed_features['morse'])
+        morse = tf.reshape(morse, parsed_features['morse_shape'])
+        morse = tf.transpose(morse, [1, 2, 0])
+
+        bump = tf.sparse_tensor_to_dense(parsed_features['bump'])
+        bump = tf.reshape(bump, parsed_features['bump_shape'])
+        bump = tf.transpose(bump, [1, 2, 0])
+
+        gfcc = tf.sparse_tensor_to_dense(parsed_features['gfcc'])
+        gfcc = tf.reshape(gfcc, parsed_features['gfcc_shape'])
+        gfcc = tf.transpose(gfcc, [1, 2, 0])
+
+        acr_stft = tf.sparse_tensor_to_dense(parsed_features['acr_stft'])
+        acr_stft = tf.reshape(acr_stft, parsed_features['acr_stft_shape'])
+        acr_stft = tf.transpose(acr_stft, [1, 2, 0])
+
         label = tf.cast(parsed_features['label'], tf.int32)
-        # return {'mfcc': mfcc, 'mel': mel, 'angular': angular,'label':label}
 
-        return {'mfcc': mfcc, 'mel': mel, 'angular': angular}, label
-
+        return {'mfcc': mfcc, 'mel': mel, 'angular': angular, 'morse': morse, 'bump': bump, 'gfcc': gfcc,
+                'acr_stft': acr_stft}, label
 
     def tf_input_fn_maker(self, feature_dir_name='features_tfrecord', is_training=True, n_epoch=1):
         data_dir = os.scandir(feature_dir_name)
@@ -205,11 +220,12 @@ class AudioPrepare():
         else:
             data_folders = list(filter(lambda x: x.name.split('_')[1] == 'test', data_dir))
 
-        print('Input datasets :{dataset} Training mode {mode} '.format( dataset=[x.name for x in data_folders],mode=is_training))
+        print('Input datasets :{dataset} Training mode {mode} '.format(dataset=[x.name for x in data_folders],
+                                                                       mode=is_training))
 
-        data_folders = [list(os.scandir(x))for x in data_folders]
-        data_path=reduce(lambda x,y:x+y,data_folders)
-        data_path=[x.path for x in data_path]
+        data_folders = [list(os.scandir(x)) for x in data_folders]
+        data_path = reduce(lambda x, y: x + y, data_folders)
+        data_path = [x.path for x in data_path]
         dataset = tf.data.TFRecordDataset(data_path)
 
         dataset = dataset.map(self.tf_record_prase_function)
@@ -224,18 +240,16 @@ class AudioPrepare():
 
         return input_fn
 
-
     def tf_input_fn_maker_predict(self, feature_dir_name='features_tfrecord', n_epoch=1):
         data_dir = os.scandir(feature_dir_name)
 
-
         data_folders = list(filter(lambda x: x.name.split('_')[1] == 'test', data_dir))
 
-        print('Input datasets :{dataset} Predict'.format( dataset=[x.name for x in data_folders]))
+        print('Input datasets :{dataset} Predict'.format(dataset=[x.name for x in data_folders]))
 
-        data_folders = [list(os.scandir(x))for x in data_folders]
-        data_path=reduce(lambda x,y:x+y,data_folders)
-        data_path=[x.path for x in data_path]
+        data_folders = [list(os.scandir(x)) for x in data_folders]
+        data_path = reduce(lambda x, y: x + y, data_folders)
+        data_path = [x.path for x in data_path]
         dataset = tf.data.TFRecordDataset(data_path)
 
         dataset = dataset.map(self.tf_record_prase_function)
@@ -270,19 +284,20 @@ if __name__ == "__main__":
     #         except tf.errors.OutOfRangeError:
     #             print("End of dataset")
     #             break
-    sess = tf.InteractiveSession()
-    predict_input_fn=test_solution.tf_input_fn_maker_predict()
-    X,Y=predict_input_fn()
 
-    while True:
-        try:
-            feature,label = sess.run([X,Y])
-            rosa_display.specshow(feature['mel'][0, :, :, 0])
-            plt.show()
-            print(label)
-        except tf.errors.OutOfRangeError:
-            print("End of dataset")
-            break
+    # sess = tf.InteractiveSession()
+    # predict_input_fn=test_solution.tf_input_fn_maker_predict()
+    # X,Y=predict_input_fn()
+    #
+    # while True:
+    #     try:
+    #         feature,label = sess.run([X,Y])
+    #         rosa_display.specshow(feature['mel'][0, :, :, 0])
+    #         plt.show()
+    #         print(label)
+    #     except tf.errors.OutOfRangeError:
+    #         print("End of dataset")
+    #         break
 
     # test_solution.tf_feature_dataset()
     # test_solution.save_feature()
@@ -291,7 +306,7 @@ if __name__ == "__main__":
 
     # test_solution.save_feature_TFrecord()
 
-    # test_solution.save_feature_TFrecord_mutipross()
+    test_solution.save_feature_TFrecord_mutipross()
     # dataset=test_solution.tf_get_dataset(is_training=False)
 
     # train_iput_fn = test_solution.tf_input_fn_maker(dataset)
