@@ -17,15 +17,15 @@ def conv_layers(input, is_training, pooling_config=None, name=None, use_bn=True,
             padding='same',
             activation=None)
         if use_bn == True:
-            net = tf.layers.batch_normalization(net,training=is_training)
+            net = tf.layers.batch_normalization(net, training=is_training)
         net = tf.nn.relu(features=net)
-        net = tf.layers.max_pooling2d(net, pool_size=[5,2], strides=(pooling_config[0], 2), padding='same')
+        net = tf.layers.max_pooling2d(net, pool_size=[5, 2], strides=(pooling_config[0], 2), padding='same')
         if use_dropout == True:
             pool1 = tf.layers.dropout(net, rate=0.5, training=is_training)
-        weight=[var for var in tf.global_variables() if var.name=='conv1_mel/conv2d/kernel:0']
-        tf.summary.histogram('conv1_kernel',weight)
+        weight = [var for var in tf.global_variables() if var.name == 'conv1_mel/conv2d/kernel:0']
+        tf.summary.histogram('conv1_kernel', weight)
         # tf.summary.tensor_summary('conv1_kernel',weight)
-        bias=[var for var in tf.global_variables() if var.name=='conv1_mel/conv2d/bias:0']
+        bias = [var for var in tf.global_variables() if var.name == 'conv1_mel/conv2d/bias:0']
         tf.summary.histogram('conv1_bise', bias)
         # tf.summary.tensor_summary('conv1_bise', bias)
 
@@ -39,7 +39,7 @@ def conv_layers(input, is_training, pooling_config=None, name=None, use_bn=True,
         if use_bn == True:
             net = tf.layers.batch_normalization(net, training=is_training)
         net = tf.nn.relu(features=net)
-        pool2 = tf.layers.max_pooling2d(net, pool_size=[5,2], strides=(pooling_config[1], 2), padding='same')
+        pool2 = tf.layers.max_pooling2d(net, pool_size=[5, 2], strides=(pooling_config[1], 2), padding='same')
         if use_dropout == True:
             pool2 = tf.layers.dropout(pool2, rate=0.5, training=is_training)
 
@@ -52,7 +52,7 @@ def conv_layers(input, is_training, pooling_config=None, name=None, use_bn=True,
         if use_bn == True:
             net = tf.layers.batch_normalization(net, training=is_training)
         net = tf.nn.relu(features=net)
-        pool3 = tf.layers.max_pooling2d(net, pool_size=[4,2], strides=(pooling_config[2], 2), padding='same')
+        pool3 = tf.layers.max_pooling2d(net, pool_size=[4, 2], strides=(pooling_config[2], 2), padding='same')
         if use_dropout == True:
             pool3 = tf.layers.dropout(pool3, rate=0.5, training=is_training)
 
@@ -62,6 +62,7 @@ def conv_layers(input, is_training, pooling_config=None, name=None, use_bn=True,
         output = tf.reshape(output, shape=[-1, output_shape[2], output_shape[1] * output_shape[3]],
                             name='reshaped')  # [batch,width,heigth*features]
     return output
+
 
 #
 # def conv_layers2(input, is_training, pooling_config=None, name=None, use_bn=True, use_dropout=True):
@@ -152,10 +153,11 @@ def conv_layers(input, is_training, pooling_config=None, name=None, use_bn=True,
 
 
 def model_fn(features, labels, mode):
-    mels = tf.reshape(features['mel'], shape=[-1, cfg.mel_shape[0], cfg.mel_shape[1], 4])
+    # mels = tf.reshape(features['mel'], shape=[-1, cfg.mel_shape[0], cfg.mel_shape[1], 4])
     # mfccs = tf.reshape(features['mfcc'], shape=[-1, cfg.mfcc_shape[0], cfg.mfcc_shape[1], 4])
     # angulars = tf.reshape(features['angular'], shape=[-1, cfg.anguler_shape[0], cfg.anguler_shape[1], 6])
 
+    input_layer = tf.reshape(features["x"], [-1, 28, 28, 1])
     # img_scale = tf.constant([255], tf.float32)
     # tf.summary.image('mel_image', tf.cast(tf.multiply(mels, img_scale), tf.uint8))
     # tf.summary.image('mfcc_image', tf.cast(tf.multiply(mfccs[-1, :, :, 0], img_scale), tf.uint8))
@@ -164,7 +166,7 @@ def model_fn(features, labels, mode):
     is_training = (mode == tf.estimator.ModeKeys.TRAIN)
 
     # mfcc_net = conv_layers2(mfccs, is_training, pooling_config=[4, 2, 2], name='mfcc', use_bn=True, use_dropout=True)
-    mel_net = conv_layers(mels, is_training, pooling_config=[4, 4, 2], name='mel', use_bn=True, use_dropout=True)
+    mel_net = conv_layers(input_layer, is_training, pooling_config=[2, 2, 2], name='mel', use_bn=True, use_dropout=True)
     # angular_net = conv_layers(angulars, is_training, pooling_config=[4, 4, 2], name='angular', use_bn=True,
     #                           use_dropout=True)
     # mel_net = conv_layers3(mels, is_training, name='mel')
@@ -212,7 +214,7 @@ def model_fn(features, labels, mode):
             inputs=gru_in,
             dtype=tf.float32)
 
-        rnn_finial=tf.layers.dense(inputs=last_state_fw[-1] + last_state_bw[-1], units=512, activation=tf.nn.relu)
+        rnn_finial = tf.layers.dense(inputs=last_state_fw[-1] + last_state_bw[-1], units=512, activation=tf.nn.relu)
 
         # rnn_outputs_merged = tf.concat(rnn_outputs, 2)
         # rnn_finial = tf.unstack(rnn_outputs_merged, rnn_outputs_merged.get_shape().as_list()[1], 1)[-1]
@@ -266,8 +268,23 @@ def model_fn(features, labels, mode):
 if __name__ == "__main__":
     tf.logging.set_verbosity(tf.logging.INFO)
     #
-    test_solution = data_utility.AudioPrepare()
-    train_input_fn = test_solution.tf_input_fn_maker(is_training=False, n_epoch=10)
+    # test_solution = data_utility.AudioPrepare()
+    # train_input_fn = test_solution.tf_input_fn_maker(is_training=False, n_epoch=10)
+
+    # Load training and eval data
+
+    mnist = tf.contrib.learn.datasets.DATASETS['mnist']('./tmp/mnist')
+    train_data = mnist.train.images  # Returns np.array
+    train_labels = np.asarray(mnist.train.labels, dtype=np.int32)
+    eval_data = mnist.test.images  # Returns np.array
+    eval_labels = np.asarray(mnist.test.labels, dtype=np.int32)
+    # Train the model
+    train_input_fn = tf.estimator.inputs.numpy_input_fn(
+        x={"x": train_data},
+        y=train_labels,
+        batch_size=100,
+        num_epochs=100,
+        shuffle=True)
 
     # Create the Estimator
     classifier = tf.estimator.Estimator(
@@ -283,8 +300,15 @@ if __name__ == "__main__":
         hooks=[logging_hook])
 
     # Evaluate the model and print results
-    test_solution = data_utility.AudioPrepare()
-    test_input_fn = test_solution.tf_input_fn_maker(is_training=False, n_epoch=1)
+    # test_solution = data_utility.AudioPrepare()
+    # test_input_fn = test_solution.tf_input_fn_maker(is_training=False, n_epoch=1)
+
+    # Evaluate the model and print results
+    eval_input_fn = tf.estimator.inputs.numpy_input_fn(
+        x={"x": eval_data},
+        y=eval_labels,
+        num_epochs=1,
+        shuffle=False)
 
     tensors_to_log = {'acc': 'accuracy', }
     logging_hook = tf.train.LoggingTensorHook(

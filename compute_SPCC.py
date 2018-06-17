@@ -18,6 +18,7 @@ from tqdm import tqdm
 
 import config as cfg
 
+import sidekit
 
 def worker(audio_dir: list, save_dir, class_index, process_i=0):
     def read_wav(audio_path):

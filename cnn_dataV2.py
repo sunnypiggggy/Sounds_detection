@@ -14,7 +14,7 @@ def cnn_model_fn(features, labels, mode):
     # Reshape X to 4-D tensor: [batch_size, width, height, channels]
     # MNIST images are 28x28 pixels, and have one color channel
     # input_layer = tf.reshape(features["mel"], [-1, 128, 313, 4])
-    input_layer = tf.reshape(features['gfcc'], shape=[-1, cfg.gfcc_shape[0], cfg.gfcc_shape[1], 4])
+    input_layer = tf.reshape(features['bump'], shape=[-1, cfg.bump_shape[0], cfg.bump_shape[1], 4])
 
     is_training = (mode == tf.estimator.ModeKeys.TRAIN)
     # input_layer=features['mel'].set_shape([ cfg.mel_shape[0], cfg.mel_shape[1], 4])
@@ -190,7 +190,7 @@ def cnn_model_fn(features, labels, mode):
 
 def main(unused_argv):
     classifier = tf.estimator.Estimator(
-        model_fn=cnn_model_fn, model_dir="./cnn_model_gfcc")
+        model_fn=cnn_model_fn, model_dir="./cnn_model_bump")
 
     tensors_to_log = {"probabilities": "softmax_tensor"}
     logging_hook = tf.train.LoggingTensorHook(
