@@ -1,7 +1,31 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <module type="PYTHON_MODULE" version="4">
   <component name="NewModuleRootManager">
-    <content url="file://$MODULE_DIR$" />
+    <content url="file://$MODULE_DIR$">
+      <sourceFolder url="file://$MODULE_DIR$/module" isTestSource="false" />
+      <excludeFolder url="file://$MODULE_DIR$/ACR_stft" />
+      <excludeFolder url="file://$MODULE_DIR$/DCASE2018-task5-dev" />
+      <excludeFolder url="file://$MODULE_DIR$/SPCC" />
+      <excludeFolder url="file://$MODULE_DIR$/cnn_model_acr_stft" />
+      <excludeFolder url="file://$MODULE_DIR$/cnn_model_ang" />
+      <excludeFolder url="file://$MODULE_DIR$/cnn_model_ang_old" />
+      <excludeFolder url="file://$MODULE_DIR$/cnn_model_bump" />
+      <excludeFolder url="file://$MODULE_DIR$/cnn_model_gfcc" />
+      <excludeFolder url="file://$MODULE_DIR$/cnn_model_mel" />
+      <excludeFolder url="file://$MODULE_DIR$/cnn_model_morse" />
+      <excludeFolder url="file://$MODULE_DIR$/crnn_model" />
+      <excludeFolder url="file://$MODULE_DIR$/crnn_model_birnn_test" />
+      <excludeFolder url="file://$MODULE_DIR$/crnn_model_bump" />
+      <excludeFolder url="file://$MODULE_DIR$/crnn_model_debug" />
+      <excludeFolder url="file://$MODULE_DIR$/features_tfrecord" />
+      <excludeFolder url="file://$MODULE_DIR$/features_tfrecordV2" />
+      <excludeFolder url="file://$MODULE_DIR$/features_tfrecord_V2" />
+      <excludeFolder url="file://$MODULE_DIR$/gfcc" />
+      <excludeFolder url="file://$MODULE_DIR$/mel_angular_mfcc" />
+      <excludeFolder url="file://$MODULE_DIR$/rnn_model" />
+      <excludeFolder url="file://$MODULE_DIR$/tmp" />
+      <excludeFolder url="file://$MODULE_DIR$/wavelets" />
+    </content>
     <orderEntry type="jdk" jdkName="Python 3.6" jdkType="Python SDK" />
     <orderEntry type="sourceFolder" forTests="false" />
   </component>
