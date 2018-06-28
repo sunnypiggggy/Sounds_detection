@@ -21,14 +21,14 @@ def cnn_model(input, is_training, name):
         net = tf.layers.batch_normalization(net, axis=1, training=is_training)
         net = tf.nn.relu(features=net)
         net = tf.layers.max_pooling2d(inputs=net, pool_size=2, strides=2)
-        # weight = [var for var in tf.global_variables() if var.name == 'conv1/conv2d/kernel:0'][0]
-        # tf.summary.histogram('conv_kernel', weight)
-        # bias = [var for var in tf.global_variables() if var.name == 'conv1/conv2d/bias:0'][0]
-        # tf.summary.histogram('conv_bise', bias)
-        # bn_gamma = [var for var in tf.global_variables() if var.name == 'conv1/batch_normalization/gamma:0'][0]
-        # tf.summary.histogram('bn_gamma', bn_gamma)
-        # bn_beta = [var for var in tf.global_variables() if var.name == 'conv1/batch_normalization/beta:0'][0]
-        # tf.summary.histogram('bn_beta', bn_beta)
+        weight = [var for var in tf.global_variables() if var.name == 'conv1/conv2d/kernel:0'][0]
+        tf.summary.histogram('conv_kernel', weight)
+        bias = [var for var in tf.global_variables() if var.name == 'conv1/conv2d/bias:0'][0]
+        tf.summary.histogram('conv_bise', bias)
+        bn_gamma = [var for var in tf.global_variables() if var.name == 'conv1/batch_normalization/gamma:0'][0]
+        tf.summary.histogram('bn_gamma', bn_gamma)
+        bn_beta = [var for var in tf.global_variables() if var.name == 'conv1/batch_normalization/beta:0'][0]
+        tf.summary.histogram('bn_beta', bn_beta)
 
     with tf.variable_scope('conv2' + name):
         net = tf.layers.conv2d(
@@ -41,14 +41,14 @@ def cnn_model(input, is_training, name):
         net = tf.layers.batch_normalization(net, axis=1, training=is_training)
         net = tf.nn.relu(features=net)
         net = tf.layers.max_pooling2d(inputs=net, pool_size=2, strides=2)
-        # weight = [var for var in tf.global_variables() if var.name == 'conv2/conv2d/kernel:0'][0]
-        # tf.summary.histogram('conv_kernel', weight)
-        # bias = [var for var in tf.global_variables() if var.name == 'conv2/conv2d/bias:0'][0]
-        # tf.summary.histogram('conv_bise', bias)
-        # bn_gamma = [var for var in tf.global_variables() if var.name == 'conv2/batch_normalization/gamma:0'][0]
-        # tf.summary.histogram('bn_gamma', bn_gamma)
-        # bn_beta = [var for var in tf.global_variables() if var.name == 'conv2/batch_normalization/beta:0'][0]
-        # tf.summary.histogram('bn_beta', bn_beta)
+        weight = [var for var in tf.global_variables() if var.name == 'conv2/conv2d/kernel:0'][0]
+        tf.summary.histogram('conv_kernel', weight)
+        bias = [var for var in tf.global_variables() if var.name == 'conv2/conv2d/bias:0'][0]
+        tf.summary.histogram('conv_bise', bias)
+        bn_gamma = [var for var in tf.global_variables() if var.name == 'conv2/batch_normalization/gamma:0'][0]
+        tf.summary.histogram('bn_gamma', bn_gamma)
+        bn_beta = [var for var in tf.global_variables() if var.name == 'conv2/batch_normalization/beta:0'][0]
+        tf.summary.histogram('bn_beta', bn_beta)
 
     with tf.variable_scope('conv3' + name):
         net = tf.layers.conv2d(
@@ -63,14 +63,14 @@ def cnn_model(input, is_training, name):
         # time_axis_pooling_shape=net.get_shape().as_list()[2]
         # net = tf.layers.max_pooling2d(inputs=net, pool_size=[1,time_axis_pooling_shape], strides=2)
         net = tf.layers.max_pooling2d(inputs=net, pool_size=[2, 2], strides=2)
-        # weight = [var for var in tf.global_variables() if var.name == 'conv3/conv2d/kernel:0'][0]
-        # tf.summary.histogram('conv_kernel', weight)
-        # bias = [var for var in tf.global_variables() if var.name == 'conv3/conv2d/bias:0'][0]
-        # tf.summary.histogram('conv_bise', bias)
-        # bn_gamma = [var for var in tf.global_variables() if var.name == 'conv3/batch_normalization/gamma:0'][0]
-        # tf.summary.histogram('bn_gamma', bn_gamma)
-        # bn_beta = [var for var in tf.global_variables() if var.name == 'conv3/batch_normalization/beta:0'][0]
-        # tf.summary.histogram('bn_beta', bn_beta)
+        weight = [var for var in tf.global_variables() if var.name == 'conv3/conv2d/kernel:0'][0]
+        tf.summary.histogram('conv_kernel', weight)
+        bias = [var for var in tf.global_variables() if var.name == 'conv3/conv2d/bias:0'][0]
+        tf.summary.histogram('conv_bise', bias)
+        bn_gamma = [var for var in tf.global_variables() if var.name == 'conv3/batch_normalization/gamma:0'][0]
+        tf.summary.histogram('bn_gamma', bn_gamma)
+        bn_beta = [var for var in tf.global_variables() if var.name == 'conv3/batch_normalization/beta:0'][0]
+        tf.summary.histogram('bn_beta', bn_beta)
     return net
 
 
@@ -79,7 +79,7 @@ def model_fn(features, labels, mode):
 
     is_training = (mode == tf.estimator.ModeKeys.TRAIN)
 
-    net = cnn_model(input_layer, is_training, 'test_net')
+    net = cnn_model(input_layer, is_training, '')
 
     with tf.variable_scope('Reshape_cnn'):
         output_shape = net.get_shape().as_list()  # [batch,height,width,features]
@@ -110,12 +110,21 @@ def model_fn(features, labels, mode):
             inputs=net,
             dtype=tf.float32)
 
+        for var in tf.global_variables():
+            scope = var.name.split('/')[0]
+            if scope == 'bi_GRU':
+                gates_candidate = var.name.split('/')[-2]
+                fw_cell = var.name.split('/')[2] + '_' + var.name.split('/')[-4] + '_'
+                kernal_bise = var.name.split('/')[-1].split(':')[0]
+                if gates_candidate == 'candidate':
+                    tf.summary.histogram('bi_GRU_' + fw_cell + kernal_bise, var)
+
         # rnn_outputs_merged = tf.concat(rnn_outputs, 2)
         # rnn_finial = tf.unstack(rnn_outputs_merged, rnn_outputs_merged.get_shape().as_list()[1], 1)[-1]
 
     with tf.variable_scope('dense_layer'):
         # logits = tf.layers.dense(inputs=rnn_finial, units=10, activation=tf.nn.relu)
-        net = tf.layers.dense(inputs=last_state_fw[1] + last_state_bw[1], units=512, activation=tf.nn.relu)
+        net = tf.layers.dense(inputs=last_state_fw[-1] + last_state_bw[-1], units=512, activation=tf.nn.relu)
         net = tf.layers.dropout(inputs=net, rate=0.4, training=is_training)
         logits = tf.layers.dense(inputs=net, units=10, activation=tf.nn.relu)
 
