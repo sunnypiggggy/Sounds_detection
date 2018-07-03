@@ -124,7 +124,15 @@ def model_fn(features, labels, mode):
 
     with tf.variable_scope('dense_layer'):
         # logits = tf.layers.dense(inputs=rnn_finial, units=10, activation=tf.nn.relu)
-        net = tf.layers.dense(inputs=last_state_fw[-1] + last_state_bw[-1], units=512, activation=tf.nn.relu)
+
+        rnn_outputs_merged = tf.concat(rnn_outputs, 2)
+        # net=rnn_outputs_merged[:,-1]
+
+        # net = tf.layers.dense(inputs=last_state_fw[-1] + last_state_bw[-1], units=512, activation=tf.nn.relu)
+
+        rnn_outputs_merged2 = tf.transpose(rnn_outputs_merged, [1, 0, 2])
+        net = tf.gather(rnn_outputs_merged2, tf.shape(rnn_outputs_merged2)[0] - 1)
+
         net = tf.layers.dropout(inputs=net, rate=0.4, training=is_training)
         logits = tf.layers.dense(inputs=net, units=10, activation=tf.nn.relu)
 

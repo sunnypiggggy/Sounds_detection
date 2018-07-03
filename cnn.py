@@ -24,7 +24,7 @@ def cnn_model_fn(features, labels, mode):
     # Padding is added to preserve width and height.
     # Input Tensor Shape: [batch_size, 28, 28, 1]'
     # Output Tensor Shape: [batch_size, 28, 28, 32]
-    with tf.name_scope('conv1'):
+    with tf.variable_scope('conv1'):
         net = tf.layers.conv2d(
             inputs=input_layer,
             filters=64,
@@ -36,7 +36,7 @@ def cnn_model_fn(features, labels, mode):
         net = tf.layers.max_pooling2d(inputs=net, pool_size=2, strides=2)
         net=tf.layers.dropout(net,0.5,training=is_training)
 
-    with tf.name_scope('conv2'):
+    with tf.variable_scope('conv2'):
         net = tf.layers.conv2d(
             inputs=net,
             filters=64,
@@ -48,7 +48,7 @@ def cnn_model_fn(features, labels, mode):
         net = tf.layers.max_pooling2d(inputs=net, pool_size=2, strides=2)
         net = tf.layers.dropout(net, 0.5, training=is_training)
 
-    with tf.name_scope('conv3'):
+    with tf.variable_scope('conv3'):
         net = tf.layers.conv2d(
             inputs=net,
             filters=64,
@@ -61,7 +61,7 @@ def cnn_model_fn(features, labels, mode):
         net = tf.layers.dropout(net, 0.5, training=is_training)
 
 
-    with tf.name_scope('conv4'):
+    with tf.variable_scope('conv4'):
         net = tf.layers.conv2d(
             inputs=net,
             filters=64,
@@ -75,7 +75,7 @@ def cnn_model_fn(features, labels, mode):
 
 
 
-    with tf.name_scope('conv5'):
+    with tf.variable_scope('conv5'):
         net = tf.layers.conv2d(
             inputs=net,
             filters=64,
@@ -88,7 +88,7 @@ def cnn_model_fn(features, labels, mode):
         net = tf.layers.dropout(net, 0.5, training=is_training)
 
 
-    with tf.name_scope('conv6'):
+    with tf.variable_scope('conv6'):
         net = tf.layers.conv2d(
             inputs=net,
             filters=64,
@@ -176,7 +176,7 @@ def main(unused_argv):
     for _ in range(100):
         classifier.train(
             input_fn=train_input_fn,
-            steps=400,
+            steps=1000,
             hooks=[logging_hook])
 
 
