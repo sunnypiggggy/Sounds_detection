@@ -80,75 +80,75 @@ class AudioPrepare():
 
     def tfrecord_worker(self, meta, fold_name, dataset_dir, feature_dir_name):
         print('start TFrecord  process {0} '.format(meta))
-        # try:
-        #     with open(meta, 'r') as f_meta:
-        #         if not os.path.exists(os.path.join(feature_dir_name, fold_name)):
-        #             os.mkdir(os.path.join(feature_dir_name, fold_name))
-        #
-        #         with open(meta, 'r') as f_meta:
-        #             f_meta.seek(0)
-        #             meta_lines = f_meta.readlines()
-        #             random.shuffle(meta_lines)
-        #             meta_chunk = list(self.split_chunks(meta_lines, 1000))
-        #
-        #             for i in range(len(meta_chunk)):
-        #                 with tf.python_io.TFRecordWriter(
-        #                         os.path.join(feature_dir_name, fold_name, str(i) + '.tfrecord')) as writer:
-        #                     for line in tqdm(meta_chunk[i], desc='\n' + fold_name + ' chunck ' + str(i)):
-        #                         path, label, sess_label = line.split()
-        #                         audio_file_name = path.split('/')[-1].split('.')[0]
-        #
-        #                         with gzip.open(os.path.join('mel_angular_mfcc', audio_file_name + '.gzip')) as f_handle:
-        #                             feature_dict = pickle.load(f_handle)
-        #                             mfcc = feature_dict['mfcc']
-        #                             mel = feature_dict['mel']
-        #                             angular = feature_dict['angular']
-        #
-        #                         with gzip.open(os.path.join('wavelets', audio_file_name + '.gzip')) as f_handle:
-        #                             feature_dict = pickle.load(f_handle)
-        #                             morse = feature_dict['morse']
-        #                             bump = feature_dict['bump']
-        #
-        #                         with gzip.open(os.path.join('gfcc', audio_file_name + '.gzip')) as f_handle:
-        #                             feature_dict = pickle.load(f_handle)
-        #                             gfcc = feature_dict['gfcc']
-        #
-        #                         with gzip.open(os.path.join('ACR_stft', audio_file_name + '.gzip')) as f_handle:
-        #                             feature_dict = pickle.load(f_handle)
-        #                             acr_stft = feature_dict['acr_stft']
-        #
-        #                         features = {
-        #                             'label': self.int64_feature(cfg.class_name2index[label]),
-        #                             'session': self.bytes_feature(bytes(sess_label, encoding='utf-8')),
-        #                             'mfcc': tf.train.Feature(float_list=tf.train.FloatList(value=mfcc.flatten().tolist())),
-        #                             'mfcc_shape': tf.train.Feature(int64_list=tf.train.Int64List(value=list(mfcc.shape))),
-        #                             'mel': tf.train.Feature(float_list=tf.train.FloatList(value=mel.flatten().tolist())),
-        #                             'mel_shape': tf.train.Feature(int64_list=tf.train.Int64List(value=list(mel.shape))),
-        #                             'angular': tf.train.Feature(
-        #                                 float_list=tf.train.FloatList(value=angular.flatten().tolist())),
-        #                             'angular_shape': tf.train.Feature(int64_list=tf.train.Int64List(value=list(angular.shape))),
-        #
-        #                             'morse': tf.train.Feature(float_list=tf.train.FloatList(value=morse.flatten().tolist())),
-        #                             'morse_shape': tf.train.Feature(int64_list=tf.train.Int64List(value=list(morse.shape))),
-        #
-        #                             'bump': tf.train.Feature(float_list=tf.train.FloatList(value=bump.flatten().tolist())),
-        #                             'bump_shape': tf.train.Feature(int64_list=tf.train.Int64List(value=list(bump.shape))),
-        #
-        #                             'gfcc': tf.train.Feature(float_list=tf.train.FloatList(value=gfcc.flatten().tolist())),
-        #                             'gfcc_shape': tf.train.Feature(int64_list=tf.train.Int64List(value=list(gfcc.shape))),
-        #
-        #                             'acr_stft': tf.train.Feature(
-        #                                 float_list=tf.train.FloatList(value=acr_stft.flatten().tolist())),
-        #                             'acr_stft_shape': tf.train.Feature(
-        #                                 int64_list=tf.train.Int64List(value=list(acr_stft.shape))),
-        #
-        #                         }
-        #                         example = tf.train.Example(features=tf.train.Features(feature=features))
-        #                         serialized = example.SerializeToString()
-        #                         writer.write(serialized)
-        # except Exception as e:
-        #     print('shit happen {0}'.format(meta))
-        #     print(e)
+        try:
+            with open(meta, 'r') as f_meta:
+                if not os.path.exists(os.path.join(feature_dir_name, fold_name)):
+                    os.mkdir(os.path.join(feature_dir_name, fold_name))
+
+                with open(meta, 'r') as f_meta:
+                    f_meta.seek(0)
+                    meta_lines = f_meta.readlines()
+                    random.shuffle(meta_lines)
+                    meta_chunk = list(self.split_chunks(meta_lines, 1000))
+
+                    for i in range(len(meta_chunk)):
+                        with tf.python_io.TFRecordWriter(
+                                os.path.join(feature_dir_name, fold_name, str(i) + '.tfrecord')) as writer:
+                            for line in tqdm(meta_chunk[i], desc='\n' + fold_name + ' chunck ' + str(i)):
+                                path, label, sess_label = line.split()
+                                audio_file_name = path.split('/')[-1].split('.')[0]
+
+                                with gzip.open(os.path.join('mel_angular_mfcc', audio_file_name + '.gzip')) as f_handle:
+                                    feature_dict = pickle.load(f_handle)
+                                    mfcc = feature_dict['mfcc']
+                                    mel = feature_dict['mel']
+                                    angular = feature_dict['angular']
+
+                                with gzip.open(os.path.join('wavelets', audio_file_name + '.gzip')) as f_handle:
+                                    feature_dict = pickle.load(f_handle)
+                                    morse = feature_dict['morse']
+                                    bump = feature_dict['bump']
+
+                                with gzip.open(os.path.join('gfcc', audio_file_name + '.gzip')) as f_handle:
+                                    feature_dict = pickle.load(f_handle)
+                                    gfcc = feature_dict['gfcc']
+
+                                with gzip.open(os.path.join('ACR_stft', audio_file_name + '.gzip')) as f_handle:
+                                    feature_dict = pickle.load(f_handle)
+                                    acr_stft = feature_dict['acr_stft']
+
+                                features = {
+                                    'label': self.int64_feature(cfg.class_name2index[label]),
+                                    'session': self.bytes_feature(bytes(sess_label, encoding='utf-8')),
+                                    'mfcc': tf.train.Feature(float_list=tf.train.FloatList(value=mfcc.flatten().tolist())),
+                                    'mfcc_shape': tf.train.Feature(int64_list=tf.train.Int64List(value=list(mfcc.shape))),
+                                    'mel': tf.train.Feature(float_list=tf.train.FloatList(value=mel.flatten().tolist())),
+                                    'mel_shape': tf.train.Feature(int64_list=tf.train.Int64List(value=list(mel.shape))),
+                                    'angular': tf.train.Feature(
+                                        float_list=tf.train.FloatList(value=angular.flatten().tolist())),
+                                    'angular_shape': tf.train.Feature(int64_list=tf.train.Int64List(value=list(angular.shape))),
+
+                                    'morse': tf.train.Feature(float_list=tf.train.FloatList(value=morse.flatten().tolist())),
+                                    'morse_shape': tf.train.Feature(int64_list=tf.train.Int64List(value=list(morse.shape))),
+
+                                    'bump': tf.train.Feature(float_list=tf.train.FloatList(value=bump.flatten().tolist())),
+                                    'bump_shape': tf.train.Feature(int64_list=tf.train.Int64List(value=list(bump.shape))),
+
+                                    'gfcc': tf.train.Feature(float_list=tf.train.FloatList(value=gfcc.flatten().tolist())),
+                                    'gfcc_shape': tf.train.Feature(int64_list=tf.train.Int64List(value=list(gfcc.shape))),
+
+                                    'acr_stft': tf.train.Feature(
+                                        float_list=tf.train.FloatList(value=acr_stft.flatten().tolist())),
+                                    'acr_stft_shape': tf.train.Feature(
+                                        int64_list=tf.train.Int64List(value=list(acr_stft.shape))),
+
+                                }
+                                example = tf.train.Example(features=tf.train.Features(feature=features))
+                                serialized = example.SerializeToString()
+                                writer.write(serialized)
+        except Exception as e:
+            print('shit happen {0}'.format(meta))
+            print(e)
 
 
     def tf_record_prase_function(self, example_proto):

@@ -1,4 +1,3 @@
-import matlab.engine as m_eng
 import os
 import librosa
 import soundfile as sf
@@ -56,7 +55,6 @@ def worker(audio_dir: list, save_dir, process_i=0):
 
 
 if __name__ == '__main__':
-    # eng = m_eng.start_matlab()
 
     dataset_dir = "DCASE2018-task5-dev"
     audio_dirs = list(os.scandir(os.path.join(dataset_dir, 'audio')))

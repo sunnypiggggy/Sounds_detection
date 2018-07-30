@@ -203,10 +203,10 @@ def main(unused_argv):
 
 
 
-    classifier.train(
-        input_fn=train_input_fn,
-        steps=20000,
-        hooks=[logging_hook])
+    # classifier.train(
+    #     input_fn=train_input_fn,
+    #     steps=20000,
+    #     hooks=[logging_hook])
 
     # Evaluate the model and print results
     test_solution = data_utility.AudioPrepare()
@@ -216,17 +216,17 @@ def main(unused_argv):
     # print(eval_results)
     eval_results = classifier.evaluate(input_fn=test_input_fn, steps=3000)
     print(eval_results)
-    # predict_input_fn=test_solution.tf_input_fn_maker_predict()
-    # predictions=classifier.predict(input_fn=predict_input_fn)
-    # # tt=list(predictions)
-    # i=0
-    # with open('perdiction.txt','w+') as file:
-    #     for var in predictions:
-    #         print(var['predicted'])
-    #         file.write(str(var['predicted'])+'\n')
-    #         i=i+1
-    #         # if i==100:
-    #         #     break
+    predict_input_fn=test_solution.tf_input_fn_maker_predict()
+    predictions=classifier.predict(input_fn=predict_input_fn)
+    # tt=list(predictions)
+    i=0
+    with open('perdiction.txt','w+') as file:
+        for var in predictions:
+            print(var['predicted'])
+            file.write(str(var['predicted'])+'\n')
+            i=i+1
+            # if i==100:
+            #     break
 
 
 
