@@ -2,7 +2,7 @@ import tensorflow as tf
 import numpy as np
 import scipy as sci
 import config as cfg
-import data_features_utility as data_utility
+import dataset as data_utility
 
 def weightVar(shape, mean=0.0, stddev=0.02, name='weights'):
     init_w = tf.truncated_normal(shape=shape, mean=mean, stddev=stddev)
@@ -201,6 +201,9 @@ if __name__ == "__main__":
     test_solution = data_utility.AudioPrepare()
     train_input_fn = test_solution.tf_input_fn_maker(is_training=False, n_epoch=10)
 
+    # Evaluate the model and print results
+    test_input_fn = test_solution.tf_input_fn_maker(is_training=False, n_epoch=1)
+
     # Create the Estimator
     classifier = tf.estimator.Estimator(
         model_fn=model_fn, model_dir="./crnn_model")
@@ -208,18 +211,16 @@ if __name__ == "__main__":
     tensors_to_log = {'class': 'predict_class', 'prob': 'softmax_tensor'}
     logging_hook = tf.train.LoggingTensorHook(
         tensors=tensors_to_log, every_n_iter=10)
+    for _ in range(10):
+        classifier.train(
+            input_fn=train_input_fn,
+            steps=1000,
+            hooks=[logging_hook])
 
-    classifier.train(
-        input_fn=train_input_fn,
-        steps=1000,
-        hooks=[logging_hook])
 
-    # Evaluate the model and print results
-    test_solution = data_utility.AudioPrepare()
-    test_input_fn = test_solution.tf_input_fn_maker(is_training=False, n_epoch=1)
 
-    tensors_to_log = {'acc': 'accuracy', }
-    logging_hook = tf.train.LoggingTensorHook(
-        tensors=tensors_to_log, every_n_iter=10)
-    eval_results = classifier.evaluate(input_fn=test_input_fn, steps=100, hooks=[logging_hook])
-    print(eval_results)
+        tensors_to_log = {'acc': 'accuracy', }
+        logging_hook = tf.train.LoggingTensorHook(
+            tensors=tensors_to_log, every_n_iter=10)
+        eval_results = classifier.evaluate(input_fn=test_input_fn, steps=100, hooks=[logging_hook])
+        print(eval_results)

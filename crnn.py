@@ -2,8 +2,8 @@ import tensorflow as tf
 import numpy as np
 import scipy as sci
 import config as cfg
-# import dataset  as data_utility
-import data_features_utility as data_utility
+import dataset  as data_utility
+# import data_features_utility as data_utility
 from tensorflow.python import debug as tf_debug
 
 tf.logging.set_verbosity(tf.logging.INFO)
@@ -97,7 +97,7 @@ def cnn_model(input, is_training, name):
 
 
 def model_fn(features, labels, mode):
-    input_layer = tf.reshape(features['mel'], shape=[-1, cfg.mel_shape[0], cfg.mel_shape[1], 4])
+    input_layer = tf.reshape(features['angular'], shape=[-1, cfg.anguler_shape[0], cfg.anguler_shape[1], 6])
 
     is_training = (mode == tf.estimator.ModeKeys.TRAIN)
 
@@ -160,17 +160,20 @@ def model_fn(features, labels, mode):
         net = tf.layers.dropout(inputs=net, rate=0.4, training=is_training)
         logits = tf.layers.dense(inputs=net, units=cfg.num_class, activation=tf.nn.relu)
 
-    accuracy = tf.metrics.accuracy(labels=labels, predictions=tf.argmax(tf.nn.softmax(logits), axis=1))
-    accuracy = tf.Print(accuracy, [accuracy], 'Acuracy__')
-    tf.summary.scalar('train_accuracy', accuracy[1])
+
 
     predictions = {
         'classes': tf.argmax(tf.nn.softmax(logits), axis=1, name='predict_class'),
-        'prob': tf.nn.softmax(logits, name='softmax_tensor'),
+        'probabilities': tf.nn.softmax(logits, name='softmax_tensor'),
     }
 
     if mode == tf.estimator.ModeKeys.PREDICT:
         return tf.estimator.EstimatorSpec(mode=mode, predictions=predictions)
+
+    accuracy = tf.metrics.accuracy(labels=labels, predictions=tf.argmax(tf.nn.softmax(logits), axis=1))
+    accuracy = tf.Print(accuracy, [accuracy], 'Acuracy__')
+    tf.summary.scalar('train_accuracy', accuracy[1])
+
 
     loss = tf.losses.sparse_softmax_cross_entropy(labels=labels, logits=logits)
 
@@ -192,28 +195,44 @@ def model_fn(features, labels, mode):
 
 def main(unused_argv):
     classifier = tf.estimator.Estimator(
-        model_fn=model_fn, model_dir="./crnn_model_birnn_test")
+        model_fn=model_fn, model_dir="./crnn_model_birnn_angular")
 
     tensors_to_log = {"probabilities": "softmax_tensor"}
     logging_hook = tf.train.LoggingTensorHook(
         tensors=tensors_to_log, every_n_iter=50)
 
     data_solution = data_utility.AudioPrepare()
-    train_input_fn = data_solution.tf_input_fn_maker(is_training=True, n_epoch=100)
-
-    classifier.train(
-        input_fn=train_input_fn,
-        steps=20000,
-        hooks=[logging_hook])
+    # train_input_fn = data_solution.tf_input_fn_maker(is_training=True, n_epoch=100)
+    #
+    # classifier.train(
+    #     input_fn=train_input_fn,
+    #     steps=20000,
+    #     hooks=[logging_hook])
 
     # Evaluate the model and print results
-    test_solution = data_utility.AudioPrepare()
-    test_input_fn = test_solution.tf_input_fn_maker(is_training=False, n_epoch=1)
-
-    # eval_results = classifier.evaluate(input_fn=test_input_fn, steps=100)
+    # test_solution = data_utility.AudioPrepare()
+    # test_input_fn = test_solution.tf_input_fn_maker(is_training=False, n_epoch=1)
+    #
+    # eval_results = classifier.evaluate(input_fn=test_input_fn, steps=3000)
     # print(eval_results)
-    eval_results = classifier.evaluate(input_fn=test_input_fn, steps=3000)
-    print(eval_results)
+
+    predict_input_fn=data_solution.tf_input_fn_maker_eval()
+    predictions=classifier.predict(input_fn=predict_input_fn)
+    predictions=list(predictions)
+    i=0
+    with open('crnn_angular_perdiction.txt','w+') as file:
+        for var in predictions:
+            print(var['classes'])
+            file.write(str(var['classes'])+'\n')
+            i=i+1
+            # if i==100:
+            #     break
+    with open('crnn_angular_probabilities.txt','w+') as file:
+        for var in predictions:
+            print(var['probabilities'])
+            file.write(str(var['probabilities'])+'\n')
+            i=i+1
+
 
 
 if __name__ == "__main__":

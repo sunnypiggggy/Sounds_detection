@@ -166,7 +166,7 @@ def cnn_model_fn(features, labels, mode):
 
 def main(unused_argv):
     classifier = tf.estimator.Estimator(
-        model_fn=cnn_model_fn, model_dir="./cnn_model_all")
+        model_fn=cnn_model_fn, model_dir="./cnn_model_mel")
 
     tensors_to_log = {"probabilities": "softmax_tensor"}
     # tensors_to_log = {"probabilities": "softmax_tensor","class": "class_tensor"}
