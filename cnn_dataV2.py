@@ -210,24 +210,24 @@ def main(unused_argv):
 
     # Evaluate the model and print results
     test_solution = data_utility.AudioPrepare()
-    # test_input_fn = test_solution.tf_input_fn_maker(is_training=False, n_epoch=1)
+    predict_input_fn = test_solution.tf_input_fn_maker(is_training=False, n_epoch=1)
     #
     # # eval_results = classifier.evaluate(input_fn=test_input_fn, steps=100)
     # # print(eval_results)
     # eval_results = classifier.evaluate(input_fn=test_input_fn, steps=3000)
     # print(eval_results)
-    predict_input_fn=test_solution.tf_input_fn_maker_eval()
+    # predict_input_fn=test_solution.tf_input_fn_maker_eval()
     predictions=classifier.predict(input_fn=predict_input_fn)
     predictions=list(predictions)
     i=0
-    with open('cnn_mel_perdiction.txt','w+') as file:
+    with open('cnn_mel_test.txt','w+') as file:
         for var in predictions:
             print(var['classes'])
             file.write(str(var['classes'])+'\n')
             i=i+1
             # if i==100:
             #     break
-    with open('cnn_mel_probabilities.txt','w+') as file:
+    with open('cnn_mel_test.txt','w+') as file:
         for var in predictions:
             print(var['probabilities'])
             file.write(str(var['probabilities'])+'\n')

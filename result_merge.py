@@ -6,7 +6,7 @@ import numpy as np
 import collections
 
 if __name__ == '__main__':
-    model_type='crnn'
+    model_type='cnn'
     result_dirs=glob.glob(model_type+'*'+'perdiction'+'*.txt')
     results=[]
     for var in result_dirs:

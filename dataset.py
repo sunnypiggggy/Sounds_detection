@@ -461,25 +461,25 @@ class AudioPrepare():
 if __name__ == "__main__":
     test_solution = AudioPrepare()
 
-    test_solution.save_eval_data()
+    # test_solution.save_eval_data()
 
-    # sess = tf.InteractiveSession()
-    # predict_input_fn = test_solution.tf_input_fn_maker_predict()
-    # X, Y = predict_input_fn()
+    sess = tf.InteractiveSession()
+    predict_input_fn = test_solution.tf_input_fn_maker_predict()
+    X, Y = predict_input_fn()
 
-    # while True:
-    # with open(".\data_labels.txt", 'w+') as f:
-    #     # for _ in range(10):
-    #     while True:
-    #         try:
-    #             tt = sess.run(Y)
-    #
-    #             for x in tt:
-    #                 f.write(str(x) + '\n')
-    #                 print(x)
-    #         except tf.errors.OutOfRangeError:
-    #             print("End of dataset")
-    #             break
+
+    with open(".\Ground_truth.txt", 'w+') as f:
+        # for _ in range(10):
+        while True:
+            try:
+                tt = sess.run(Y)
+
+                for x in tt:
+                    f.write(str(x) + '\n')
+                    print(x)
+            except tf.errors.OutOfRangeError:
+                print("End of dataset")
+                break
 
     # sess = tf.InteractiveSession()
     # # predict_input_fn = test_solution.tf_input_fn_maker_predict()
