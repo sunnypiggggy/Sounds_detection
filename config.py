@@ -37,7 +37,7 @@ bump_shape=(101,314)
 
 gfcc_shape=(100,313)
 
-acr_stft=(250,313)
+acr_stft_shape=(250,313)
 
 
 

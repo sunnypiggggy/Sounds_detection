@@ -1,4 +1,5 @@
 import sklearn
+import sklearn.metrics as metrics
 import numpy as np
 import scipy as sci
 import config as cfg
@@ -17,13 +18,15 @@ class model_eval():
 
         with open(file_dir, 'r') as f:
             f.seek(0)
-            self.predicted = f.readlines()
+            temp= f.readlines()
+            self.predicted=list(map(int,temp))
 
     def read_truth(self, file_dir):
 
         with open(file_dir, 'r') as f:
             f.seek(0)
-            self.truth = f.readlines()
+            temp= f.readlines()
+            self.truth=list(map(int,temp))
 
     def plot_confusion_matrix(self,
                               y_pred,
@@ -31,8 +34,8 @@ class model_eval():
                               classes=None,
                               normalize=False,
                               title='Confusion matrix',
-                              cmap=plt.cm.Blue):
-        cm = sklearn.metrics.confusion_matrix(y_true=y_truth, y_pred=y_pred)
+                              cmap=plt.cm.Blues):
+        cm = metrics.confusion_matrix(y_true=y_truth, y_pred=y_pred)
         if normalize:
             cm = cm.astype('float') / cm.sum(axis=1)[:, np.newaxis]
 
@@ -66,14 +69,37 @@ class model_eval():
                       y_truth,
                       classes_name: list,
                       ):
-        text = sklearn.metrics.classification_report(y_true=y_truth,
-                                                     y_pred=y_pred,
-                                                     target_names=classes_name)
+        if classes_name==None:
+            text = sklearn.metrics.classification_report(y_true=y_truth,
+                                                         y_pred=y_pred,
+                                                         )
+        else:
+            text = sklearn.metrics.classification_report(y_true=y_truth,
+                                                         y_pred=y_pred,
+                                                         target_names=classes_name)
+        print(text)
         with open(self.report_dir, 'w+') as f:
             f.writelines(text)
 
-        pass
+
+    def dcase_result_output(self, input_file, output_file):
+        results = []
+        with open(input_file, 'r') as f:
+            f.seek(0)
+            results = f.readlines()
+        results = list(map(int, results))
+        with open(output_file, 'w+') as f:
+            for i in range(len(results)):
+                result_string = "audio/" + str(i + 1) + '.wav ' + str(cfg.class_name[results[i]]) + "\n"
+                print(result_string)
+                f.write(result_string)
 
 
 if __name__ == '__main__':
-    eval_solution = model_eval()
+    a = model_eval()
+
+    # eval_solution.dcase_result_output('crnn_result.txt', 'crnn_final.txt')
+    a.read_predicted('cnn_result.txt')
+    a.read_truth('Ground_truth.txt')
+    a.model_summary(a.predicted,a.truth,cfg.class_name)
+    print('shit')

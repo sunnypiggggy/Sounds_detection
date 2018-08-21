@@ -12,8 +12,6 @@ def cnn_model_fn(features, labels, mode):
     """Model function for CNN."""
     # Input Layer
     # Reshape X to 4-D tensor: [batch_size, width, height, channels]
-    # MNIST images are 28x28 pixels, and have one color channel
-    # input_layer = tf.reshape(features["mel"], [-1, 128, 313, 4])
     input_layer = tf.reshape(features['mel'], shape=[-1, cfg.mel_shape[0], cfg.mel_shape[1], 4])
 
     is_training = (mode == tf.estimator.ModeKeys.TRAIN)
@@ -199,7 +197,7 @@ def main(unused_argv):
     hook = tf_debug.TensorBoardDebugHook("sunny-workstation:7000")
 
     test_solution = data_utility.AudioPrepare()
-    train_input_fn = test_solution.tf_input_fn_maker(is_training=True, n_epoch=100)
+    # train_input_fn = test_solution.tf_input_fn_maker(is_training=True, n_epoch=100)
 
 
 
@@ -210,14 +208,15 @@ def main(unused_argv):
 
     # Evaluate the model and print results
     test_solution = data_utility.AudioPrepare()
-    predict_input_fn = test_solution.tf_input_fn_maker(is_training=False, n_epoch=1)
+    test_input_fn = test_solution.tf_input_fn_maker(is_training=False, n_epoch=1)
     #
-    # # eval_results = classifier.evaluate(input_fn=test_input_fn, steps=100)
-    # # print(eval_results)
-    # eval_results = classifier.evaluate(input_fn=test_input_fn, steps=3000)
+    # eval_results = classifier.evaluate(input_fn=test_input_fn, steps=100)
     # print(eval_results)
+
     # predict_input_fn=test_solution.tf_input_fn_maker_eval()
-    predictions=classifier.predict(input_fn=predict_input_fn)
+
+    # predictions=classifier.predict(input_fn=predict_input_fn)
+    predictions = classifier.predict(input_fn=test_input_fn)
     predictions=list(predictions)
     i=0
     with open('cnn_mel_test.txt','w+') as file:
@@ -227,7 +226,7 @@ def main(unused_argv):
             i=i+1
             # if i==100:
             #     break
-    with open('cnn_mel_test.txt','w+') as file:
+    with open('cnn_mel_test_pro.txt','w+') as file:
         for var in predictions:
             print(var['probabilities'])
             file.write(str(var['probabilities'])+'\n')
