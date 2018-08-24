@@ -10,7 +10,7 @@ The results of Test set within dev-set  can be found in the root folder.i.e. cnn
 
 
 
-Evaluation dataset's results can be found in the folder ./results as the required.
+Evaluation dataset's results can be found in the folder ./results as the official required.
 
 
 Dcase Task 5 url:http://dcase.community/challenge2018/task-monitoring-domestic-activities
