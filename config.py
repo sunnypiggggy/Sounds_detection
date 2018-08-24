@@ -29,7 +29,7 @@ mel_shape = (128, 313)
 
 angular_windowsize = 1024
 angular_n_fft = 1024
-anguler_shape = (80, 313)
+angular_shape = (80, 313)
 
 morse_shape=(101,314)
 

@@ -2,7 +2,7 @@ import tensorflow as tf
 import numpy as np
 import scipy as sci
 import config as cfg
-import dataset  as data_utility
+import dataset_orgin  as data_utility
 from tensorflow.python import debug as tf_debug
 
 tf.logging.set_verbosity(tf.logging.INFO)
@@ -12,6 +12,8 @@ def cnn_model_fn(features, labels, mode):
     """Model function for CNN."""
     # Input Layer
     # Reshape X to 4-D tensor: [batch_size, width, height, channels]
+    # MNIST images are 28x28 pixels, and have one color channel
+    # input_layer = tf.reshape(features["mel"], [-1, 128, 313, 4])
     input_layer = tf.reshape(features['mel'], shape=[-1, cfg.mel_shape[0], cfg.mel_shape[1], 4])
 
     is_training = (mode == tf.estimator.ModeKeys.TRAIN)
@@ -147,10 +149,11 @@ def cnn_model_fn(features, labels, mode):
         # Generate predictions (for PREDICT and EVAL mode)
         "classes": tf.argmax(input=logits, axis=1),
         # "expected": ,
-        "probabilities": tf.nn.softmax(logits, name="softmax_tensor")
+        "probabilities": tf.nn.softmax(logits, name="softmax_tensor"),
     }
     if mode == tf.estimator.ModeKeys.PREDICT:
         return tf.estimator.EstimatorSpec(mode=mode, predictions=predictions)
+
 
     # Calculate Loss (for both TRAIN and EVAL modes)
     loss = tf.losses.sparse_softmax_cross_entropy(labels=labels, logits=logits)
@@ -188,7 +191,7 @@ def cnn_model_fn(features, labels, mode):
 
 def main(unused_argv):
     classifier = tf.estimator.Estimator(
-        model_fn=cnn_model_fn, model_dir="./cnn_model_gfcc")
+        model_fn=cnn_model_fn, model_dir="./cnn_model_mel")
 
     tensors_to_log = {"probabilities": "softmax_tensor"}
     logging_hook = tf.train.LoggingTensorHook(
@@ -197,7 +200,7 @@ def main(unused_argv):
     hook = tf_debug.TensorBoardDebugHook("sunny-workstation:7000")
 
     test_solution = data_utility.AudioPrepare()
-    # train_input_fn = test_solution.tf_input_fn_maker(is_training=True, n_epoch=100)
+    train_input_fn = test_solution.tf_input_fn_maker(is_training=True, n_epoch=100)
 
 
 
@@ -209,28 +212,25 @@ def main(unused_argv):
     # Evaluate the model and print results
     test_solution = data_utility.AudioPrepare()
     test_input_fn = test_solution.tf_input_fn_maker(is_training=False, n_epoch=1)
-    #
+
     # eval_results = classifier.evaluate(input_fn=test_input_fn, steps=100)
     # print(eval_results)
-
-    # predict_input_fn=test_solution.tf_input_fn_maker_eval()
-
-    # predictions=classifier.predict(input_fn=predict_input_fn)
-    predictions = classifier.predict(input_fn=test_input_fn)
-
+    # eval_results = classifier.evaluate(input_fn=test_input_fn, steps=3000)
+    # print(eval_results)
+    predict_input_fn=test_solution.tf_input_fn_maker_predict()
+    predictions=classifier.predict(input_fn=predict_input_fn)
+    # tt=list(predictions)
     i=0
-    with open('cnn_gfcc_test.txt','w+') as file:
-        for var in predictions:
-            print(var['classes'])
-            file.write(str(var['classes'])+'\n')
-            i=i+1
+    with open('probabilities.txt','w+') as f:
+        with open('perdiction.txt','w+') as file:
+            for var in predictions:
+                print(var['classes'] )
+                file.write(str(var['classes'])+'\n')
+                f.write(str(var['probabilities'])+'\n')
+                i=i+1
             # if i==100:
             #     break
-    with open('cnn_gfcc_test_pro.txt','w+') as file:
-        for var in predictions:
-            print(var['probabilities'])
-            file.write(str(var['probabilities'])+'\n')
-            i=i+1
+
 
 
 

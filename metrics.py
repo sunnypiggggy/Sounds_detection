@@ -12,21 +12,33 @@ class model_eval():
         self.truth = []
         self.predicted = []
         self.y_score = []
-        self.report_dir = 'classfication_report.txt'
+        self.probabilities=[]
+        # self.report_dir = 'classfication_report.txt'
 
     def read_predicted(self, file_dir):
 
         with open(file_dir, 'r') as f:
             f.seek(0)
-            temp= f.readlines()
-            self.predicted=list(map(int,temp))
+            temp = f.readlines()
+            self.predicted = list(map(int, temp))
 
     def read_truth(self, file_dir):
 
         with open(file_dir, 'r') as f:
             f.seek(0)
-            temp= f.readlines()
-            self.truth=list(map(int,temp))
+            temp = f.readlines()
+            self.truth = list(map(int, temp))
+    def read_probabilities(self,file_dir):
+        with open(file_dir,'r') as f:
+            f.seek(0)
+            lines=f.readlines()
+            for i in range(1,len(lines),2):
+                temp=lines[i]+lines[i+1]
+                num_list=temp.replace("\n",'').replace('[','').replace(']','').split(' ')
+                num_list=list(map(float,num_list))
+                self.probabilities.append(num_list)
+            # print("shit")
+
 
     def plot_confusion_matrix(self,
                               y_pred,
@@ -58,6 +70,7 @@ class model_eval():
         plt.tight_layout()
         plt.ylabel('True label')
         plt.xlabel('Predicted label')
+        plt.savefig(title + '.png')
 
     def plot_roc_curve(self, y_true, y_score):
         fpr, tpr = sklearn.metrics.roc_curve(y_true=y_true, y_score=y_score)
@@ -68,8 +81,9 @@ class model_eval():
                       y_pred,
                       y_truth,
                       classes_name: list,
+                      report_file='classfication_report.txt'
                       ):
-        if classes_name==None:
+        if classes_name == None:
             text = sklearn.metrics.classification_report(y_true=y_truth,
                                                          y_pred=y_pred,
                                                          )
@@ -78,9 +92,8 @@ class model_eval():
                                                          y_pred=y_pred,
                                                          target_names=classes_name)
         print(text)
-        with open(self.report_dir, 'w+') as f:
+        with open(report_file, 'w+') as f:
             f.writelines(text)
-
 
     def dcase_result_output(self, input_file, output_file):
         results = []
@@ -99,7 +112,9 @@ if __name__ == '__main__':
     a = model_eval()
 
     # eval_solution.dcase_result_output('crnn_result.txt', 'crnn_final.txt')
-    a.read_predicted('cnn_result.txt')
+    a.read_predicted('crnn_morse_perdiction.txt')
     a.read_truth('Ground_truth.txt')
-    a.model_summary(a.predicted,a.truth,cfg.class_name)
+    # a.read_probabilities('crnn_angular_probabilities.txt')
+    a.model_summary(a.predicted,a.truth,cfg.class_name,'crnn_morse_report.txt')
+    a.plot_confusion_matrix(a.predicted, a.truth, cfg.class_name,title='crnn morse confusion matrix')
     print('shit')
