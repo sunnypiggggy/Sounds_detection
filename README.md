@@ -3,9 +3,9 @@ DCASE 2018 TASK5
 This is the respoitory for Dcase 2018 TASK5 comtest.
 
 implement several features for domestic activaties recognization.
+F1 score is among 92% to %96.
 
-
-The resultsof Test set within dev-set  can be found in the root folder.i.e. cnn XXXX report.txt and confusuion matrix cnn XXXX confusion matrix.png.
+The results of Test set within dev-set  can be found in the root folder.i.e. cnn XXXX report.txt and confusuion matrix cnn XXXX confusion matrix.png.
 
 
 
