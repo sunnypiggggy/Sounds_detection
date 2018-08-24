@@ -1,0 +1,13 @@
+                 precision    recall  f1-score   support
+
+        absence       0.94      0.95      0.94     18860
+        cooking       0.96      0.97      0.97      5124
+    dishwashing       0.81      0.91      0.86      1424
+         eating       0.89      0.97      0.93      2308
+          other       0.77      0.58      0.66      2060
+social_activity       1.00      0.96      0.98      4944
+ vacuum_cleaner       1.00      1.00      1.00       972
+    watching_tv       1.00      1.00      1.00     18648
+        working       0.94      0.93      0.94     18644
+
+    avg / total       0.95      0.95      0.95     72984
