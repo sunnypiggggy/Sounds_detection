@@ -1,6 +1,6 @@
 # Sounds_detection
 DCASE 2018 TASK5 
-This is the respoitory for Dcase 2018 TASK5 comtest.
+This is the respoitory for Dcase 2018 TASK5 contest.
 
 implement several features for domestic activaties recognization.
 F1 score is among 92% to %96.
