@@ -86,11 +86,14 @@ class model_eval():
         if classes_name == None:
             text = sklearn.metrics.classification_report(y_true=y_truth,
                                                          y_pred=y_pred,
+                                                         digits=4
                                                          )
         else:
             text = sklearn.metrics.classification_report(y_true=y_truth,
                                                          y_pred=y_pred,
-                                                         target_names=classes_name)
+                                                         target_names=classes_name,
+                                                         digits=4
+                                                         )
         print(text)
         with open(report_file, 'w+') as f:
             f.writelines(text)
@@ -111,10 +114,24 @@ class model_eval():
 if __name__ == '__main__':
     a = model_eval()
 
-    # eval_solution.dcase_result_output('crnn_result.txt', 'crnn_final.txt')
-    a.read_predicted('crnn_morse_perdiction.txt')
-    a.read_truth('Ground_truth.txt')
-    # a.read_probabilities('crnn_angular_probabilities.txt')
-    a.model_summary(a.predicted,a.truth,cfg.class_name,'crnn_morse_report.txt')
-    a.plot_confusion_matrix(a.predicted, a.truth, cfg.class_name,title='crnn morse confusion matrix')
+
+    # a.read_predicted('crnn_acr_stft_perdiction.txt')
+    # a.read_truth('Ground_truth.txt')
+    # # a.read_probabilities('crnn_angular_probabilities.txt')
+    # a.model_summary(a.predicted,a.truth,cfg.class_name,'crnn_acr_stft_report.txt')
+    # a.plot_confusion_matrix(a.predicted, a.truth, cfg.class_name,title='crnn acr_stft confusion matrix',normalize=True)
+
+    # name_list=['acr_stft','bump','morse','mel','angular']
+    name_list = ['acr_stft','bump', 'morse', 'mel', 'angular','gfcc']
+    for var in name_list:
+        a.read_truth('Ground_truth.txt')
+
+        a.read_predicted('cnn_{}_perdiction.txt'.format(var))
+        a.model_summary(a.predicted, a.truth, cfg.class_name, 'cnn_{}_report.txt'.format(var))
+        a.plot_confusion_matrix(a.predicted, a.truth, cfg.class_name, title='cnn {} confusion matrix'.format(var), normalize=True)
+
+        a.read_predicted('crnn_{}_perdiction.txt'.format(var))
+        a.model_summary(a.predicted, a.truth, cfg.class_name, 'crnn_{}_report.txt'.format(var))
+        a.plot_confusion_matrix(a.predicted, a.truth, cfg.class_name, title='crnn {} confusion matrix'.format(var), normalize=True)
+
     print('shit')

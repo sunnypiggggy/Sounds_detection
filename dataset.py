@@ -469,18 +469,18 @@ if __name__ == "__main__":
     X, Y = predict_input_fn()
 
 
-    with open(".\Ground_truth3.txt", 'w+') as f:
+    # with open(".\Ground_truth3.txt", 'w+') as f:
         # for _ in range(10):
-        while True:
-            try:
-                tt = sess.run(X)
+    while True:
+        try:
+            tt = sess.run(X)
 
-                # for x in tt:
-                #     f.write(str(x) + '\n')
-                print(tt['file'])
-            except tf.errors.OutOfRangeError:
-                print("End of dataset")
-                break
+            # for x in tt:
+            #     f.write(str(x) + '\n')
+            print(tt['file'])
+        except tf.errors.OutOfRangeError:
+            print("End of dataset")
+            break
 
     # sess = tf.InteractiveSession()
     # # predict_input_fn = test_solution.tf_input_fn_maker_predict()

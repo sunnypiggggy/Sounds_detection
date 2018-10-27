@@ -13,9 +13,13 @@ import pickle
 import gzip
 from tqdm import tqdm
 from itertools import combinations
-
+import glob
 
 def worker(audio_dir: list, save_dir, process_i=0):
+    def pre_emphasis(x):
+        b = np.asarray([1.0, -0.97])
+        emphasized_sig = sci.signal.lfilter(b=b, a=1.0, x=x)
+        return emphasized_sig
     def read_wav(audio_path):
         '''
 
@@ -27,6 +31,7 @@ def worker(audio_dir: list, save_dir, process_i=0):
         # print('audio :{0}'.format(audio_path))
         # print('sample rate :{0}'.format(sampleRate))
         # print('shape: {0}'.format(audio_data.shape))
+
         return audio_data, sampleRate
 
     def _getMaxTDOA(microphoneSeparationInMetres):
@@ -128,32 +133,28 @@ def worker(audio_dir: list, save_dir, process_i=0):
 
 
 if __name__ == '__main__':
-    # eng = m_eng.start_matlab()
 
-    dataset_dir = "DCASE2018-task5-dev"
-    audio_dirs = list(os.scandir(os.path.join(dataset_dir, 'audio')))
-    feature_dirs = "mel_angular_mfcc"
+    # dataset_dir = "DCASE2018-task5-dev"
+    # audio_dirs = list(os.scandir(os.path.join(dataset_dir, 'audio')))
+    # feature_dirs = "mel_angular_mfcc"
+    #
+    # if not os.path.exists(feature_dirs):
+    #     os.mkdir(feature_dirs)
+    #
+    # audio_path = [[] for _ in range(6)]
+    # for i in range(len(audio_dirs)):
+    #     if audio_dirs[i].name.split('.')[1] == 'wav':
+    #         audio_path[i % 6].append(audio_dirs[i].path)
+    # for i in range(6):
+    #     worker(audio_path[i], feature_dirs,i)
+    # # process_pool = Pool()
+    # # for i in range(6):
+    # #     process_pool.apply_async(worker, args=(audio_path[i], feature_dirs,i))
+    # #
+    # # process_pool.close()
+    # # process_pool.join()
+    # # worker(audio_path[0], feature_dirs, 0)
+    # print("main process ends")
 
-    if not os.path.exists(feature_dirs):
-        os.mkdir(feature_dirs)
-
-    audio_path = [[] for _ in range(6)]
-    for i in range(len(audio_dirs)):
-        if audio_dirs[i].name.split('.')[1] == 'wav':
-            audio_path[i % 6].append(audio_dirs[i].path)
-
-    process_pool = Pool()
-    for i in range(6):
-        process_pool.apply_async(worker, args=(audio_path[i], feature_dirs,i))
-
-    process_pool.close()
-    process_pool.join()
-    # worker(audio_path[0], feature_dirs, 0)
-    print("main process ends")
-
-    # feature_acr_stft = list(os.scandir(feature_ACR_dirs))
-    # with gzip.open(feature_acr_stft[0], 'rb') as f:
-    #     xx = pickle.load(f)
-    #     pass
-
+    audio=glob.glob('*.wav')
     pass

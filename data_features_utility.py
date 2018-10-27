@@ -509,7 +509,7 @@ class AudioPrepare():
 
 if __name__ == "__main__":
     test_solution = AudioPrepare()
-
+    test_solution.save_feature_TFrecord_mutipross()
     # sess = tf.InteractiveSession()
     # predict_input_fn=test_solution.tf_input_fn_maker_predict()
     # X,Y=predict_input_fn()
@@ -526,19 +526,20 @@ if __name__ == "__main__":
     #         except tf.errors.OutOfRangeError:
     #             print("End of dataset")
     #             break
-    sess = tf.InteractiveSession()
-    predict_input_fn=test_solution.tf_input_fn_maker_predict()
-    X,Y=predict_input_fn()
 
-    while True:
-        try:
-            feature,label = sess.run([X,Y])
-            rosa_display.specshow(feature['mel'][0, :, :, 0])
-            plt.show()
-            print(label)
-        except tf.errors.OutOfRangeError:
-            print("End of dataset")
-            break
+    # sess = tf.InteractiveSession()
+    # predict_input_fn=test_solution.tf_input_fn_maker_predict()
+    # X,Y=predict_input_fn()
+    #
+    # while True:
+    #     try:
+    #         feature,label = sess.run([X,Y])
+    #         rosa_display.specshow(feature['mel'][0, :, :, 0])
+    #         plt.show()
+    #         print(label)
+    #     except tf.errors.OutOfRangeError:
+    #         print("End of dataset")
+    #         break
 
     # test_solution.tf_feature_dataset()
     # test_solution.save_feature()

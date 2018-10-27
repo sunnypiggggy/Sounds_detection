@@ -97,7 +97,7 @@ def cnn_model(input, is_training, name):
 
 
 def model_fn(features, labels, mode):
-    input_layer = tf.reshape(features['angular'], shape=[-1, cfg.angular_shape[0], cfg.angular_shape[1], 6])
+    input_layer = tf.reshape(features['acr_stft'], shape=[-1, cfg.acr_stft_shape[0], cfg.acr_stft_shape[1], 4])
 
     is_training = (mode == tf.estimator.ModeKeys.TRAIN)
 
@@ -192,7 +192,7 @@ def model_fn(features, labels, mode):
 
 def main(unused_argv):
     classifier = tf.estimator.Estimator(
-        model_fn=model_fn, model_dir="./crnn_model_birnn_angular")
+        model_fn=model_fn, model_dir="./crnn_model_birnn_acr_stft")
 
     tensors_to_log = {"probabilities": "softmax_tensor"}
     logging_hook = tf.train.LoggingTensorHook(
@@ -218,8 +218,8 @@ def main(unused_argv):
     predict_input_fn=data_solution.tf_input_fn_maker_predict()
     predictions=classifier.predict(input_fn=predict_input_fn)
     i=0
-    with open('crnn_angular_probabilities.txt','w+') as f:
-        with open('crnn_angular_perdiction.txt','w+') as file:
+    with open('crnn_acr_stft_probabilities.txt','w+') as f:
+        with open('crnn_acr_stft_perdiction.txt','w+') as file:
             for var in predictions:
                 print(var['classes'] )
                 file.write(str(var['classes'])+'\n')

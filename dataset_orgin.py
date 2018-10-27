@@ -302,8 +302,8 @@ if __name__ == "__main__":
     while True:
         try:
             feature,label = sess.run([X,Y])
-            rosa_display.specshow(feature['mel'][0, :, :, 0])
-            plt.show()
+            # rosa_display.specshow(feature['mel'][0, :, :, 0])
+            # plt.show()
             print(label)
         except tf.errors.OutOfRangeError:
             print("End of dataset")

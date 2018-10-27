@@ -78,10 +78,27 @@ class AudioPrepare():
         pross_pool.join()
         print('main pross end')
 
+    def save_feature_TFrecord(self, dataset_dir="DCASE2018-task5-dev",
+                              feature_dir_name='features_tfrecord_temp',
+                              train_sets=True):
+        if not os.path.exists(feature_dir_name):
+            os.mkdir(feature_dir_name)
+
+        data_meta_dirs = list(os.scandir(os.path.join(dataset_dir, 'evaluation_setup')))
+        if train_sets == True:
+            data_meta_dirs = filter(lambda x: x.name.split('_')[1].split('.txt')[0] == 'train', data_meta_dirs)
+        else:
+            data_meta_dirs = filter(lambda x: x.name.split('_')[1].split('.txt')[0] == 'test', data_meta_dirs)
+
+        data_meta_dirs = list(data_meta_dirs)
+        for i in range(len(data_meta_dirs)):
+            self.tfrecord_worker(data_meta_dirs[i].path, data_meta_dirs[i].name.split('.txt')[0], dataset_dir,
+                                 feature_dir_name)
+
     def tfrecord_worker(self, meta, fold_name, dataset_dir, feature_dir_name):
         print('start TFrecord  process {0} '.format(meta))
         try:
-            with open(meta, 'r') as f_meta:
+            # with open(meta, 'r') as f_meta:
                 if not os.path.exists(os.path.join(feature_dir_name, fold_name)):
                     os.mkdir(os.path.join(feature_dir_name, fold_name))
 
@@ -120,22 +137,32 @@ class AudioPrepare():
                                 features = {
                                     'label': self.int64_feature(cfg.class_name2index[label]),
                                     'session': self.bytes_feature(bytes(sess_label, encoding='utf-8')),
-                                    'mfcc': tf.train.Feature(float_list=tf.train.FloatList(value=mfcc.flatten().tolist())),
-                                    'mfcc_shape': tf.train.Feature(int64_list=tf.train.Int64List(value=list(mfcc.shape))),
-                                    'mel': tf.train.Feature(float_list=tf.train.FloatList(value=mel.flatten().tolist())),
+                                    'mfcc': tf.train.Feature(
+                                        float_list=tf.train.FloatList(value=mfcc.flatten().tolist())),
+                                    'mfcc_shape': tf.train.Feature(
+                                        int64_list=tf.train.Int64List(value=list(mfcc.shape))),
+                                    'mel': tf.train.Feature(
+                                        float_list=tf.train.FloatList(value=mel.flatten().tolist())),
                                     'mel_shape': tf.train.Feature(int64_list=tf.train.Int64List(value=list(mel.shape))),
                                     'angular': tf.train.Feature(
                                         float_list=tf.train.FloatList(value=angular.flatten().tolist())),
-                                    'angular_shape': tf.train.Feature(int64_list=tf.train.Int64List(value=list(angular.shape))),
+                                    'angular_shape': tf.train.Feature(
+                                        int64_list=tf.train.Int64List(value=list(angular.shape))),
 
-                                    'morse': tf.train.Feature(float_list=tf.train.FloatList(value=morse.flatten().tolist())),
-                                    'morse_shape': tf.train.Feature(int64_list=tf.train.Int64List(value=list(morse.shape))),
+                                    'morse': tf.train.Feature(
+                                        float_list=tf.train.FloatList(value=morse.flatten().tolist())),
+                                    'morse_shape': tf.train.Feature(
+                                        int64_list=tf.train.Int64List(value=list(morse.shape))),
 
-                                    'bump': tf.train.Feature(float_list=tf.train.FloatList(value=bump.flatten().tolist())),
-                                    'bump_shape': tf.train.Feature(int64_list=tf.train.Int64List(value=list(bump.shape))),
+                                    'bump': tf.train.Feature(
+                                        float_list=tf.train.FloatList(value=bump.flatten().tolist())),
+                                    'bump_shape': tf.train.Feature(
+                                        int64_list=tf.train.Int64List(value=list(bump.shape))),
 
-                                    'gfcc': tf.train.Feature(float_list=tf.train.FloatList(value=gfcc.flatten().tolist())),
-                                    'gfcc_shape': tf.train.Feature(int64_list=tf.train.Int64List(value=list(gfcc.shape))),
+                                    'gfcc': tf.train.Feature(
+                                        float_list=tf.train.FloatList(value=gfcc.flatten().tolist())),
+                                    'gfcc_shape': tf.train.Feature(
+                                        int64_list=tf.train.Int64List(value=list(gfcc.shape))),
 
                                     'acr_stft': tf.train.Feature(
                                         float_list=tf.train.FloatList(value=acr_stft.flatten().tolist())),
@@ -149,7 +176,6 @@ class AudioPrepare():
         except Exception as e:
             print('shit happen {0}'.format(meta))
             print(e)
-
 
     def tf_record_prase_function(self, example_proto):
         features = {
@@ -267,7 +293,7 @@ class AudioPrepare():
 
 if __name__ == "__main__":
     test_solution = AudioPrepare()
-
+    test_solution.save_feature_TFrecord()
     # sess = tf.InteractiveSession()
     # predict_input_fn=test_solution.tf_input_fn_maker_predict()
     # X,Y=predict_input_fn()
@@ -306,7 +332,7 @@ if __name__ == "__main__":
 
     # test_solution.save_feature_TFrecord()
 
-    test_solution.save_feature_TFrecord_mutipross()
+    # test_solution.save_feature_TFrecord_mutipross()
     # dataset=test_solution.tf_get_dataset(is_training=False)
 
     # train_iput_fn = test_solution.tf_input_fn_maker(dataset)
